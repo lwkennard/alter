@@ -31,6 +31,22 @@ window-save-state = always
 # nothing to the remote host.
 shell-integration-features = cursor,sudo,title,ssh-env,path
 
+# ---------------- notifications ----------------
+# Nothing from Ghostty reaches GNOME's notification tray. Three paths lead there
+# (defaults as of Ghostty 1.3.1):
+#  - desktop-notifications: programs send OSC 9 / OSC 777 escapes and Ghostty
+#    posts them as desktop notifications. Default true.
+#  - bell-features 'attention': a bell in an unfocused window sets the urgency
+#    hint, which GNOME turns into a "Ghostty is ready" notification. Default on.
+#    The bell still marks the tab title (🔔), which stays inside the window.
+#  - notify-on-command-finish: default never already; pinned so a future
+#    default change cannot turn it on.
+# app-notifications (the "copied to clipboard" toasts) are drawn inside the
+# window, not sent to the desktop, so they stay as shipped.
+desktop-notifications = false
+bell-features = no-system,no-audio,no-attention,title,no-border
+notify-on-command-finish = never
+
 # ---------------- keybindings ----------------
 # GNOME Terminal reorders tabs with Ctrl+Shift+PgUp/PgDn; Ghostty uses those
 # keys to jump between prompts, so replace that stock action here.

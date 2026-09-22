@@ -2,72 +2,116 @@
 
 Read [`README.md`](README.md) → "Working on this repo" for the general
 conventions (idempotent, reversible, honest `--dry-run`, detect don't assume).
-The rule below is in addition to those and is not optional.
+The rules below are in addition to those and are not optional.
 
 ---
 
-## Rule: keep `keys` in sync with the settings it documents
+## Rule: `docs/hotkeys.txt` fits one screen and holds nothing but hotkeys
 
 `keys` prints [`docs/hotkeys.txt`](docs/hotkeys.txt) verbatim (see the `keys`
 function in `config/shell/devtools.sh`). The file is read straight out of the
-repo at `~/alter/docs/hotkeys.txt` — there is no copy or build step, so an edit
-to it *is* the change to the printout.
+repo — no copy, no build step — so an edit to it *is* the change to the
+printout. It exists to answer exactly one question, **"what is the hotkey to
+do X?"**, at a glance, without scrolling. Everything below follows from that.
 
-**Any change to a keybinding or to a shell command/alias the reference
-mentions — added, removed, or modified — must update `docs/hotkeys.txt` in the
-same commit.** A change that leaves the printout stale is an incomplete change.
+`./bootstrap/verify.sh` enforces the shape limits mechanically (section
+"Hotkey reference"). A change that fails them is not finished.
 
-### What counts as a related setting
+### Shape — hard limits
+
+| Limit | Value | Why |
+|---|---|---|
+| Height | **≤ 30 lines** | a full-height Ghostty window on this display is 34 rows; 4 are kept for the `keys` command line and the prompt after it |
+| Width | **≤ 72 characters** per line | fits the narrowest window the file is read in |
+| Blank lines | **none** | a blank line is a hotkey that did not fit |
+| Line kinds | exactly two | a **section header** (`␣NAME`, upper case, one leading space) or a **binding line** (key at column 4, description at column 27) |
+| Key column | ≤ 22 characters | columns 4–25; column 26 is the separating space |
+| Description | ≤ 46 characters | columns 27–72 |
+
+The budget is fixed. **Adding a line means removing or merging another.** When
+you must choose, keep the binding a user cannot guess and cannot look up
+elsewhere, in this order: repo-set keys that replaced a stock key → PaperWM
+keys → stock keys that people forget → stock keys everyone knows (`Ctrl+Shift+C`
+lives on borrowed time). Anything cut moves to the README's keybinding
+section, so it is still findable — just not in `keys`.
+
+### Content — what a line may say
+
+- **Only keystrokes.** A line names a key or key family and the action it
+  performs. No commands, aliases, functions, environment variables, file
+  paths, or troubleshooting steps — those are documented in `README.md`
+  ("What you get", "The terminal greeting", "Useful commands").
+- **No rationale, no history, no comparison.** Nothing about what a key *used
+  to* do, what GNOME or Ghostty bind by default, what this repo changed, or
+  why. No `[stock]` marker, no `(was …)`, no "instead of", no "replaces".
+  `verify.sh` greps for these words and fails on them. That story belongs in
+  `README.md` → "Keybindings" and in comments next to the setting.
+- **No title, no legend, no usage hint.** The first line is the first section
+  header. `keys` is documented in the README, not in its own output.
+- **The description is the action**, in plain words, as short as it can be
+  while still unambiguous: `close window`, `move tab left / right`. No
+  trailing notes. The one allowed qualifier is a per-machine variant on the
+  same line, e.g. `Super+W with 2+ layouts`.
+- **One self-contained line per binding.** `keys PATTERN` greps the file, so
+  a line must read correctly on its own. Sibling keys that share one action
+  may share a line, split with ` / ` on both sides (`Ctrl+Shift+T / W` →
+  `new / close tab`). `X / +Mod` means the same key with `Mod` added
+  (`Super+R / +Shift` → `cycle window width / height`).
+- **Sections are fixed:** `DESKTOP`, `WINDOWS (PAPERWM)`, `TERMINAL
+  (GHOSTTY)`, `SHELL`, in that order. A new section is only justified by a
+  new component that binds its own keys — and it still has to fit in 30 lines.
+- **Key spelling:** `Super`, `Ctrl`, `Alt`, `Shift`, `+` between modifiers,
+  `Left/Right/Up/Down` or `arrows`, `PgUp/PgDn`, `Return`, `BackSpace`,
+  `Escape`, `Tab`, `1..4`. Match the existing lines; do not introduce a second
+  spelling of the same key.
+
+### Sync — what owns which lines
+
+**Any change to a keybinding — added, removed, or modified — must update
+`docs/hotkeys.txt` in the same commit**, if that key is in the printout or
+belongs in it. A stale printout is an incomplete change.
 
 | Source | What it owns in the printout |
 |---|---|
-| `bootstrap/20-gnome.sh` | the `DESKTOP` block — workspace switching, move-to-workspace, `Super+Space`/rofi, anything unbound to free a key, `ALTER_WS_COUNT` / `ALTER_ROFI_KEY` behaviour |
-| `config/ghostty/config` | the `TERMINAL -- GHOSTTY` block — every `keybind =` line, plus stock bindings this repo deliberately relies on |
-| `config/shell/devtools.sh` | the `SHELL` block — fzf bindings, `z`/`zi`, the `ll`/`la`/`lt` aliases, `fd`/`rg`/`bat`, delta |
-| `config/shell/greeting.sh` | the `SHELL` block lines about the new-terminal banner — `fetch`, the `logo.txt` path, `ALTER_NO_GREETING` |
-| `config/rofi/config.rasi` | the keys inside the rofi menu (`kb-*`) and the window-switcher line |
-| `bootstrap/40-extensions.sh` | the `WINDOWS -- PAPERWM` block — every PaperWM binding, `Super+V` for Clipboard Indicator, and the `PAPERWM TOOK OVER` block naming each stock binding it displaced |
-| `bootstrap/verify.sh`, `uninstall.sh` | the `IF SOMETHING DOES NOT WORK` block |
+| `bootstrap/20-gnome.sh` | `DESKTOP` — workspace switching, move-to-workspace, `Super+Space`/rofi (and the `Super+W` variant), `ALTER_WS_COUNT` / `ALTER_ROFI_KEY` behaviour |
+| `bootstrap/40-extensions.sh` | `WINDOWS (PAPERWM)` — every PaperWM binding the repo sets, unbinds or relies on; `Super+V` for Clipboard Indicator under `DESKTOP` |
+| `config/ghostty/config` | `TERMINAL (GHOSTTY)` — every `keybind =` line, plus the stock bindings the repo deliberately relies on |
+| `config/shell/devtools.sh` | `SHELL` — the fzf key bindings only (`Ctrl+R`, `Ctrl+T`, `Alt+C`); aliases and commands are README material |
+| `config/rofi/config.rasi` | the `kb-*` keys, if any make the cut; today they do not, and the README carries them |
 
-A new `bootstrap/NN-*.sh` stage that sets keybindings joins this table; add its
-row when you add the stage. An extension that ships its own bindings counts:
-the user cannot tell which component bound a key, only that it does something.
+A new `bootstrap/NN-*.sh` stage that sets keybindings joins this table when
+you add the stage. An extension that ships its own bindings counts: the user
+cannot tell which component bound a key, only that it does something.
 
 ### What to update
 
-1. **`docs/hotkeys.txt`** — add, remove or correct the line. Then:
-   - Keep the existing column alignment: keys start at column 4, the
-     description at column 27, the `[stock]` marker at column 69 (75-char lines).
-   - Mark `[stock]` only for bindings that came with GNOME/Ghostty and that
-     this repo does *not* set. If the repo starts setting a key, drop the
-     marker; if the repo stops setting one and the stock binding takes over,
-     add it.
-   - Keep each binding on **one self-contained line**. `keys PATTERN` greps the
-     file, so a line that reads correctly only together with the line above it
-     is invisible to a search.
-   - When a key is deliberately *unbound*, say so on the line that now owns it
-     (as `Super+1 .. 4` does with `(was dock favourites)`) rather than adding a
-     separate line for the removal.
-2. **`README.md`** — the keybinding sections near the top duplicate the same
-   facts. Update them too, or the two references disagree.
-3. **`bootstrap/verify.sh`** — if the change is a GNOME binding, add or adjust
-   the `gsettings get` check, per the README convention that anything new gets
-   a verify check.
+1. **`docs/hotkeys.txt`** — add, remove or correct the line within the shape
+   limits above. Keys stay conventional-looking and aligned with their
+   neighbours.
+2. **`README.md`** → "Keybindings" — the same facts, with the rationale and
+   history that `hotkeys.txt` is not allowed to carry. Bindings dropped from
+   `hotkeys.txt` for space go in the "Not in `keys`" table there. Update it,
+   or the two references disagree.
+3. **`bootstrap/verify.sh`** — for a GNOME binding, add or adjust the
+   `gsettings get` check, per the README convention that anything new gets a
+   verify check. If you change a shape limit, change `HK_MAX_LINES` /
+   `HK_MAX_COLS` there **and** in the table above, in the same commit, and
+   say in the commit why the screen budget moved.
 4. **`uninstall.sh`** — if a new GNOME key is now set, make sure the reset path
    puts the default back.
 
 ### Check before finishing
 
 ```bash
-./bootstrap/verify.sh          # exit 0 = state matches what is documented
-keys                           # read the whole printout, not just your line
-keys <the key you touched>     # the grep path must return your line alone
+./bootstrap/verify.sh          # "Hotkey reference" section all ✓, exit 0
+keys                           # read the whole printout on a full-height window: no scroll
+keys <the key you touched>     # the grep path must return your line alone, and it must make sense alone
 ghostty +list-keybinds         # ground truth for the Ghostty block
 ```
 
 `docs/hotkeys.txt` is the one file a user reads at 2am when something stopped
-working. Treat a wrong line in it as a bug of the same severity as a wrong line
-in the shell config.
+working. A wrong line in it is a bug of the same severity as a wrong line in
+the shell config; a line that pushes it past one screen is the same bug.
 
 ---
 

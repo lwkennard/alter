@@ -1,95 +1,30 @@
- HOTKEYS            [stock] = GNOME/Ghostty default  keys [pattern]
-
  DESKTOP
-   Super+Space / +W       rofi windows; +W for multiple inputs
-   Super+1 .. 4           workspace 1-4 (was dock favourites)
-   Super+Shift+1 .. 4     move window to workspace 1-4
+   Super+1..4 / +Shift    go to workspace N / move window there
    Super+Alt+Left/Right   previous / next workspace
-   Super+Shift+Left/Right move window prev/next workspace
-   Super+V                clipboard history, last 50 copies
-   Ctrl+Super+1 .. 9      dock favourite 1-9                        [stock]
-   Ctrl+Alt+T             new terminal                              [stock]
-   Super / Super+A        overview / app grid                       [stock]
-   Alt+F4 / Super+H       close / minimise window                   [stock]
-
- WINDOWS -- PAPERWM
-   Super+Left/Right       focus window left / right along the strip
-   Super+Up/Down          focus within a column
-   Super+, / Super+.      previous / next window
-   Super+Home / +End      first / last window in the strip
-   Alt+Tab / Super+Tab    live alt-tab
-   Super+Ctrl+arrows      move window
-   Super+Shift+Alt+arrows focus another monitor
-   Super+Ctrl+Shift+dir   move window to another monitor
-   Super+Alt+Up/Down      swap monitor above / below
-   Super+T                take window
-   Super+I / Super+O      pull next into column / push out
-   Super+Return / +N      new window
+   Super+Shift+Left/Right move window to previous / next workspace
+   Super+Space            switch window; Super+W with 2+ layouts
+   Super+V                clipboard history
+   Ctrl+Alt+T             new terminal
+ WINDOWS (PAPERWM)
+   Super+arrows           focus window left / right / up / down
+   Super+Ctrl+arrows      move window left / right / up / down
+   Super+Tab / Alt+Tab    cycle windows
+   Super+Shift+Alt+arrows focus other monitor
+   Super+Shift+Ctrl+arrow move window to other monitor
+   Super+I / Super+O      pull next window into column / push it out
+   Super+R / +Shift       cycle window width / height
+   Super+F / +Shift       maximise width / fullscreen
+   Super+Return           new window
    Super+BackSpace        close window
-   Super+R / Shift+R      cycle window width / height
-   Super+F / Shift+F      maximise width / fullscreen
-   Super+C                centre horizontally
-   Super+`                back to the previous workspace
-   Super+Escape           toggle window in scratch layer
-   Super+Shift+Escape     show / hide the scratch layer (floats)
-
- PAPERWM TOOK OVER
-   Super+Left/Right       was: tile window left / right
-   Super+Up               was: maximise window
-   Super+Down             was: unmaximise window
-   Super+Escape           was: restore shortcuts (Wayland only)
-   Super+Shift+Escape     was: cancel input capture
-   Super+End              was: last workspace
-   Ctrl+Alt+Tab           was: switch panels
-   Super+` / Alt+`        was: switch group
-   Super+Tab              was: switch applications
-   Alt+Tab                was: switch windows
-   Super+Alt+Up/Down      was: shift overview up / down
-   Super+N                was: focus active notification
-   Super+O                was: rotate video lock
-
- TERMINAL -- GHOSTTY
-   Ctrl+Shift+O / E       split right / down                        [stock]
-   Ctrl+Shift+arrows      move between splits
-   Ctrl+Shift+Enter       zoom / unzoom split                       [stock]
-   Ctrl+Shift+PgUp/PgDn   reorder tab
-   Ctrl+Shift+T / W       new / close tab                           [stock]
-   Ctrl+Shift+N / Q       new window / quit                         [stock]
-   Ctrl+PgUp / PgDn       previous / next tab                       [stock]
-   Alt+1 .. 8 / Alt+9     tab N / last tab                          [stock]
-   Ctrl+Shift+C / V       copy / paste                              [stock]
-   Ctrl+Shift+P           command palette                           [stock]
-   Ctrl+Plus / - / 0      font bigger / smaller / reset             [stock]
-   Ctrl+Shift+,           reload config                             [stock]
-
- ROFI MENU
-   type / Enter / Esc     filter / select / cancel
-   Down / Ctrl+N          next result (Alt+Tab also works)
-   Up / Ctrl+P            previous result (Alt+Shift+Tab too)
-   Ctrl+Enter             accept custom input
-
+   Super+Escape / +Shift  toggle scratch window / scratch layer
+ TERMINAL (GHOSTTY)
+   Ctrl+Shift+T / W       new / close tab
+   Ctrl+PgUp/PgDn, Alt+N  previous / next tab, tab N (Alt+9 = last)
+   Ctrl+Shift+PgUp/PgDn   move tab left / right
+   Ctrl+Shift+O / E       split right / down
+   Ctrl+Shift+arrows      focus split left / right / up / down
+   Ctrl+Shift+Enter       zoom / unzoom split
+   Ctrl+Shift+C / V       copy / paste
  SHELL
-   Ctrl+R                 fzf: search command history
-   Ctrl+T                 fzf: pick a file, paste its path
-   Alt+C                  fzf: cd into a subdirectory
-   inside fzf             arrows/Ctrl+P/N; Enter picks; Esc quits
-   z DIR / zi / z -       zoxide: jump / pick / previous dir
-   ll / la / lt           eza: long+git+hidden / all / tree 2 deep
-   bat FILE               cat with highlighting and line numbers
-   fd PAT / rg PAT        find files / search contents
-   git diff / log -p      rendered through delta
-   keys [PATTERN]         show or search this reference
-   fetch [FLAGS]          print banner; flags if fastfetch exists
-   logo.txt               art in ~/.config/fastfetch/logo.txt
-   local/env.sh           sourced if readable; never committed
-   ALTER_NO_GREETING=1    skip automatic new-terminal banner
-
- IF SOMETHING DOES NOT WORK
-   ~/alter/bootstrap/verify.sh  checks every piece; exit 0 = all good
-   rofi -dump-theme             empty output: theme or display failure
-   ghostty +list-keybinds       bindings loaded from config file
-   ~/alter/uninstall.sh         reverts keys, links, hooks; see leftovers
-   Alt+F2 then r                restart GNOME Shell (X11)
-   gnome-extensions list --enabled  lists configured enabled extensions
-   gnome-extensions info UUID   State must say ACTIVE, not INITIALIZED
-   disable-user-extensions      if true, NO user extension loads at all
+   Ctrl+R                 search command history
+   Ctrl+T / Alt+C         insert a file path / cd into a directory

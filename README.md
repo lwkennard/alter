@@ -51,6 +51,11 @@ the gsettings key in `20-gnome.sh`, **and** a patch to PaperWM in
 key. The picture itself stays yours — this repo sets the layout, never
 `picture-uri`.
 
+Ghostty never posts to GNOME's notification tray: OSC 9/777 desktop
+notifications, the bell's "Ghostty is ready" attention request and
+command-finished notifications are all off in `config/ghostty/config`. A bell
+still puts 🔔 in the tab title, and the in-window "copied" toast still shows.
+
 **Deliberately not included:** a multiplexer (tmux/zellij) — high value, but
 it is the one remaining thing that changes muscle memory. See [Roadmap](#roadmap).
 
@@ -141,6 +146,29 @@ older config. Ghostty does not hot-reload — press `Ctrl+Shift+,`
 ### Shell
 
 `Ctrl+R` history · `Ctrl+T` file picker · `Alt+C` fuzzy cd — all stock fzf.
+
+### Not in `keys`
+
+`keys` prints `docs/hotkeys.txt`, which is capped at one screen (30 lines) and
+holds only the bindings you cannot guess. These work too, but did not make the
+cut:
+
+| Key | Action |
+|---|---|
+| `Super+,` / `Super+.` | Previous / next window along the strip (PaperWM) |
+| `Super+Home` / `Super+End` | First / last window in the strip (PaperWM) |
+| `` Super+` `` | Back to the previous workspace (PaperWM) |
+| `Super+T` | Take window: carry it with you to another position (PaperWM) |
+| `Super+C` | Centre the window horizontally (PaperWM) |
+| `Super+Alt+↑/↓` | Swap the monitors above / below (PaperWM) |
+| `Super+N` | New window, alias of `Super+Return` (PaperWM) |
+| `Ctrl+Super+1..9` | Dock favourite N (stock GNOME) |
+| `Super` / `Super+A` | Overview / app grid (stock GNOME) |
+| `Alt+F4` / `Super+H` | Close / minimise window (stock GNOME) |
+| `Ctrl+Shift+N` / `Q` | New Ghostty window / quit (stock) |
+| `Ctrl+Plus` / `-` / `0` | Font bigger / smaller / reset (stock Ghostty) |
+| `Ctrl+Shift+P` / `Ctrl+Shift+,` | Ghostty command palette / reload config (stock) |
+| in rofi: `Ctrl+N` / `Ctrl+P` | Next / previous match (`Alt+Tab` / `Alt+Shift+Tab` too); `Ctrl+Enter` accepts typed text as-is |
 
 ---
 
@@ -302,11 +330,11 @@ alter/
 ├── bin/zenity-askpass      GUI sudo prompt for non-TTY contexts
 ├── bin/img2logo            image -> ASCII/block logo art (needs python3-pil)
 ├── docs/
-│   ├── hotkeys.txt         plain-text hotkey reference (`keys`)
+│   ├── hotkeys.txt         one-screen hotkey reference (`keys`); shape enforced by verify.sh
 │   └── TODO.md             outstanding work, acceptance criteria, loose ends
 ├── local/README.md         machine-specific env.sh is sourced when readable
 ├── .gitignore              local files, backups, and editor junk
-├── CLAUDE.md               repo rules: keep `keys` in sync, keep setup reproducible
+├── CLAUDE.md               repo rules: one-screen `keys` reference, reproducible setup
 └── README.md               setup, usage, and conventions
 ```
 
@@ -332,8 +360,10 @@ Conventions to follow if you extend it (human or agent):
   `MOD` in `install.sh`, and add a check to `verify.sh`.
 - **Changed a keybinding?** Update `docs/hotkeys.txt` (what `keys` prints) and
   the keybinding sections above, in the same commit. Added, removed or
-  modified — a stale printout is an incomplete change. Full rule in
-  [`CLAUDE.md`](CLAUDE.md).
+  modified — a stale printout is an incomplete change. `hotkeys.txt` has a
+  hard shape: at most 30 lines of 72 columns, keystrokes and actions only, no
+  history or rationale (that lives here). `verify.sh` fails on violations.
+  Full rule in [`CLAUDE.md`](CLAUDE.md).
 - **Changed anything on the machine?** Put it in a bootstrap stage, check it in
   `verify.sh`, revert it in `uninstall.sh` — and write what went wrong into
   "Gotchas" below or `docs/TODO.md`. A hand-made change survives nothing; an

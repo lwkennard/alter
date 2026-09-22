@@ -37,6 +37,6 @@ done
 
 hdr "Done"
 say "  Log out and back in for the GNOME changes to fully apply."
-say "  Hotkeys:    cat $ALTER_ROOT/docs/hotkeys.txt   (or the 'keys' alias)"
+say "  Hotkeys:    keys   (prints $ALTER_ROOT/docs/hotkeys.txt; 'keys PATTERN' filters)"
 [ -d "$ALTER_BACKUP" ] && say "  Replaced files were saved to $ALTER_BACKUP"
 exit "$rc"
