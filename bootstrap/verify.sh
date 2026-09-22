@@ -39,11 +39,15 @@ hdr "Configs parse"
 if have ghostty; then
   ghostty +validate-config --config-file="$HOME/.config/ghostty/config" >/dev/null 2>&1 \
     && ok "ghostty config valid" || { err "ghostty config INVALID"; fails=$((fails+1)); }
-  # Split navigation is the one binding this repo moves off a Ghostty default,
+  # Split navigation moves off a Ghostty default (Ctrl+Alt+arrows),
   # so confirm all four directions actually landed.
   n=$(ghostty +list-keybinds 2>/dev/null | grep -c 'ctrl+shift+arrow_.*=goto_split:')
   [ "${n:-0}" = 4 ] && ok "Ctrl+Shift+arrows -> move between splits" \
     || { err "Ctrl+Shift+arrows split navigation: $n/4 bound"; fails=$((fails+1)); }
+  # Shift+Up/Down replace Ghostty's adjust_selection default with line scroll.
+  n=$(ghostty +list-keybinds 2>/dev/null | grep -cE 'shift\+arrow_(up=scroll_page_lines:-1|down=scroll_page_lines:1)$')
+  [ "${n:-0}" = 2 ] && ok "Shift+Up/Down -> scroll one line" \
+    || { err "Shift+Up/Down line scroll: $n/2 bound"; fails=$((fails+1)); }
   # No Ghostty notification may reach the GNOME tray (see the config comment).
   # +show-config omits values equal to the default, so an absent
   # notify-on-command-finish means 'never'.

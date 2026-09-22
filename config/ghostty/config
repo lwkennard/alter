@@ -79,6 +79,17 @@ keybind = ctrl+shift+arrow_right=goto_split:right
 keybind = ctrl+shift+arrow_up=goto_split:up
 keybind = ctrl+shift+arrow_down=goto_split:down
 
+# Shift+Up/Down scroll the scrollback one line. Ghostty ships them as
+# adjust_selection:up/down, which is performable: it only acts while text is
+# selected, and otherwise passes the key to the program -- so at a bash prompt
+# they printed \e[1;2A / \e[1;2B, and nothing scrolled by line. Replacing them
+# costs extending a selection up/down from the keyboard; Shift+Left/Right still
+# extend it sideways. Like any binding here, the program no longer sees the key
+# (vim's Shift+Up page-up, say). Scrollback only: in a full-screen program
+# (vim, less, htop) there is no scrollback to move.
+keybind = shift+arrow_up=scroll_page_lines:-1
+keybind = shift+arrow_down=scroll_page_lines:1
+
 # Hand Ctrl+Alt+arrows back to the desktop (bootstrap/20-gnome.sh no longer
 # strips it out of GNOME's workspace-switch bindings).
 keybind = ctrl+alt+arrow_left=unbind

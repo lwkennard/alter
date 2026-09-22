@@ -127,12 +127,13 @@ Ghostty's stock Linux keymap largely matches GNOME Terminal, so
 | `Ctrl+Shift+Enter` | Zoom split |
 | `Ctrl+Shift+P` | Command palette |
 
-Two binding families are set here:
+Three binding families are set here:
 
 | Key | Action | Why |
 |---|---|---|
 | `Ctrl+Shift+PgUp/PgDn` | Reorder tab | Replaces Ghostty's jump-to-prompt default |
 | `Ctrl+Shift+arrows` | Move between splits | Replaces Ghostty's `Ctrl+Alt+arrows` default, which collides with GNOME's workspace switch |
+| `Shift+↑/↓` | Scroll one line | Replaces Ghostty's `adjust_selection:up/down`, which only acts while text is selected — otherwise the key reached the shell and printed `\e[1;2A`/`\e[1;2B` |
 
 `Ctrl+Shift+←/→` were Ghostty's aliases for previous/next tab. `Ctrl+PgUp/PgDn`,
 `Ctrl+Tab`/`Ctrl+Shift+Tab` and `Alt+1..9` all still switch tabs, so nothing is
@@ -146,6 +147,12 @@ it sends `\e[1;6A..D` to the running program (just as `Ctrl+Alt+arrow` sends
 `\e[1;7A..D`). Binding it in Ghostty means Ghostty consumes it and the program
 never sees it. Nothing in this setup wants it, but a TUI that does would lose
 it.
+
+The same goes for `Shift+↑/↓`: vim, for one, reads `Shift+↑` as page up, and
+no longer gets it. Keyboard-extending a selection up or down is gone with the
+old binding (`Shift+←/→` still extend it sideways; the mouse does the rest).
+The line scroll moves Ghostty's scrollback only, so it does nothing inside a
+full-screen program such as `less` or `htop`.
 
 **If `Ctrl+Shift+arrow` prints a bare `A`/`B`/`C`/`D` at your prompt**, that is
 the tail of that escape sequence leaking through: Ghostty is running with an

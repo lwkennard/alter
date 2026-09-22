@@ -31,6 +31,7 @@
    Ctrl+Shift+Enter       zoom / unzoom split
    Ctrl+Shift+N / Q       new window / quit
    Ctrl+Shift+C / V       copy / paste
+   Shift+Up/Down          scroll up / down one line
    Ctrl+Plus / - / 0      font bigger / smaller / reset
    Ctrl+Shift+P / +,      command palette / reload config
  SHELL
