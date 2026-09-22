@@ -390,6 +390,9 @@ Conventions to follow if you extend it (human or agent):
   locally and on `origin` afterwards. It refuses to touch anything when either
   checkout is dirty, when `main` has diverged from `origin`, or when the merge
   conflicts (the merge is aborted). It never force-pushes.
+- **Working in a worktree?** The `worktree-*` branch stays local. Commit to
+  it, never push it to `origin`; `bin/merge-latest` is how the work reaches
+  `origin/main`. Full rule in [`CLAUDE.md`](CLAUDE.md).
 
 ### Gotchas found the hard way
 

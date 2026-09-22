@@ -6,6 +6,33 @@ The rules below are in addition to those and are not optional.
 
 ---
 
+## Rule: worktree branches stay local — never push them to `origin`
+
+A `worktree-*` branch (anything created under `.claude/worktrees/`) is a
+scratch space for one job. It exists to keep parallel jobs and the user's
+checkout from stepping on each other, not to be shared. **Commit on it as
+much as you like; do not push it.** No `git push origin worktree-…`, no
+`--set-upstream`, no `gh pr create` from it. The only branch that goes to
+`origin` is `main`, and only through `bin/merge-latest` (or the user, by
+hand).
+
+Why: a pushed worktree branch is a remote branch someone has to notice,
+review and delete later, and it leaks half-finished work off this machine.
+Landing the work through `bin/merge-latest` gets it onto `origin/main` in one
+step and, with `--clean`, removes the worktree and the branch afterwards.
+
+- **Finished a job in a worktree?** Commit, leave the branch where it is,
+  and say in your report which branch holds the work and that
+  `bin/merge-latest` lands it. Do not push it "so it survives" — the local
+  branch survives the worktree; only the worktree directory gets deleted.
+- **Told to push, open a PR, or set an upstream from a worktree branch?**
+  That is a change to this rule; check with the user first.
+- **The `--clean` path in `bin/merge-latest`** deletes a `worktree-*` branch
+  on `origin` only if it is already there. That is cleanup for branches
+  pushed before this rule existed, not permission to push new ones.
+
+---
+
 ## Rule: `docs/hotkeys.txt` is one fixed-height screen of keys and tools
 
 `keys` prints [`docs/hotkeys.txt`](docs/hotkeys.txt) verbatim (see the `keys`
