@@ -4,9 +4,10 @@
 fails=0
 
 hdr "Binaries"
-for c in rofi fzf zoxide fdfind batcat eza delta gh ghostty; do
+for c in rofi fzf zoxide fdfind batcat eza delta gh ghostty starship; do
   if have "$c"; then ok "$c -> $(command -v "$c")"
   elif [ "$c" = ghostty ] && [ "${ALTER_SKIP_GHOSTTY:-0}" = 1 ]; then warn "ghostty not installed (ALTER_SKIP_GHOSTTY=1)"
+  elif [ "$c" = starship ] && [ "${ALTER_SKIP_STARSHIP:-0}" = 1 ]; then warn "starship not installed (ALTER_SKIP_STARSHIP=1)"
   else err "$c MISSING"; fails=$((fails+1)); fi
 done
 
@@ -62,6 +63,10 @@ for f in ghostty/config rofi/config.rasi rofi/themes/catppuccin-mocha.rasi \
 done
 [ "$(readlink -f "$HOME/.local/bin/zenity-askpass" 2>/dev/null)" = "$(readlink -f "$ALTER_ROOT/bin/zenity-askpass")" ] \
   && ok "~/.local/bin/zenity-askpass linked" || warn "~/.local/bin/zenity-askpass not linked"
+# starship reads ~/.config/starship.toml, not a per-tool directory, so it does
+# not fit the loop above.
+[ -L "$HOME/.config/starship.toml" ] && [ "$(readlink -f "$HOME/.config/starship.toml")" = "$(readlink -f "$ALTER_ROOT/config/starship/starship.toml")" ] \
+  && ok "~/.config/starship.toml linked" || { err "~/.config/starship.toml is not linked to the repo (run: ./install.sh dotfiles)"; fails=$((fails+1)); }
 for m in config/shell/devtools.sh config/shell/greeting.sh; do
   grep -qF "$m" "$HOME/.bashrc" 2>/dev/null \
     && ok "~/.bashrc sources ${m##*/}" || { err "~/.bashrc does not source ${m##*/} (run: ./install.sh dotfiles)"; fails=$((fails+1)); }
@@ -78,6 +83,24 @@ if have script; then
 fi
 bash -c '. "$HOME/.config/shell/devtools.sh"; type -t __zoxide_z' 2>/dev/null | grep -q function \
   && ok "zoxide initialised" || { err "zoxide NOT initialised"; fails=$((fails+1)); }
+if have starship; then
+  # `starship init bash` defines starship_precmd and puts it in PROMPT_COMMAND;
+  # if devtools.sh did not run it the stock Ubuntu PS1 is what you get.
+  bash -c '. "$HOME/.config/shell/devtools.sh"; type -t starship_precmd' 2>/dev/null | grep -q function \
+    && ok "starship prompt initialised" || { err "starship NOT initialised by devtools.sh"; fails=$((fails+1)); }
+  # starship exits 0 whatever the config says: a TOML syntax error, an unknown
+  # key and a missing palette are all reported on stderr -- at every prompt --
+  # while `starship prompt` and `print-config` still return 0 (same trap as
+  # rofi -dump-theme; see README "Gotchas"). So render one prompt from the
+  # repo and require silence.
+  _se=$(cd "$ALTER_ROOT" && starship prompt 2>&1 >/dev/null)
+  if [ -z "$_se" ]; then
+    ok "starship.toml renders a prompt with no warnings"
+  else
+    err "starship.toml problem (starship prompt wrote to stderr):"
+    printf '%s\n' "$_se" | sed 's/^/    /' >&2; fails=$((fails+1))
+  fi
+fi
 
 hdr "GNOME"
 if is_gnome; then
@@ -196,6 +219,8 @@ fi
   && ok "delta uses catppuccin-mocha" || warn "delta.features is not catppuccin-mocha"
 grep -q 'Catppuccin Mocha' "$HOME/.config/ghostty/config" 2>/dev/null \
   && ok "ghostty theme is Catppuccin Mocha" || warn "ghostty theme not set"
+grep -qx 'palette = "catppuccin_mocha"' "$HOME/.config/starship.toml" 2>/dev/null \
+  && ok "starship palette is catppuccin_mocha" || warn "starship palette not set"
 
 hdr "Extensions"
 if is_gnome && have gnome-extensions; then

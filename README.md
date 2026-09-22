@@ -34,15 +34,24 @@ cd ~/alter
 | **[bat](https://github.com/sharkdp/bat)** | `cat` has no highlighting | `bat file`. Also the fzf preview pane |
 | **[eza](https://github.com/eza-community/eza)** | `ls` | `ll` / `la` / `lt` (tree) |
 | **[delta](https://github.com/dandavison/delta)** | git diffs are hard to scan | Automatic for `git diff`/`show`/`log -p` |
+| **[starship](https://starship.rs)** | the stock prompt shows nothing about git or the toolchain | The prompt: path, branch, dirty/ahead state, rebase in progress, slow-command time; `user@host` only over ssh |
 | **JetBrainsMono Nerd Font** | icons render as tofu without it | Terminal font; needed by most modern prompts |
 | **[fastfetch](https://github.com/fastfetch-cli/fastfetch)** | a new terminal tells you nothing about the machine it is on | The banner every terminal opens with. `fetch` reprints it |
 | **[PaperWM](https://extensions.gnome.org/extension/6099/paperwm/)** | manual window placement wastes a wide screen | Scrollable tiling, per-monitor workspaces. `Super+←/→` scrolls the strip |
 | **Just Perfection** | GNOME's shell chrome isn't tunable | Boots to desktop, faster animations, wrapping workspaces |
 | **Clipboard Indicator** | copying between editor/terminal/browser loses history | `Super+V`, last 50 copies |
 
-Everything runs one palette: **Catppuccin Mocha** in Ghostty, rofi, fzf, bat
-and git-delta, with `Yaru-purple-dark` on the desktop as the closest native
-GTK match.
+Everything runs one palette: **Catppuccin Mocha** in Ghostty, rofi, fzf, bat,
+git-delta and the starship prompt, with `Yaru-purple-dark` on the desktop as
+the closest native GTK match.
+
+starship is the one tool that does not come from apt: Ubuntu 24.04 has no
+package and there is no PPA, so `bootstrap/05-starship.sh` downloads the
+static release tarball from GitHub, checks it against the published sha256
+and installs the single binary to `~/.local/bin` — no root and no `curl | sh`.
+`ALTER_SKIP_STARSHIP=1` keeps the stock bash prompt; `ALTER_STARSHIP_VERSION`
+pins a release. The prompt layout is `config/starship/starship.toml`, linked
+to `~/.config/starship.toml`, so an edit there shows in the next terminal.
 
 The wallpaper is set to `spanned`, so one picture is sliced across all
 monitors rather than copied onto each. That takes two changes, not one:
@@ -311,6 +320,7 @@ alter/
 ├── bootstrap/
 │   ├── lib.sh              logging, symlink+backup, gset, distro detection
 │   ├── 00-packages.sh      apt packages + Ghostty (PPA on Ubuntu < 26.04)
+│   ├── 05-starship.sh      starship prompt binary from GitHub, sha256-checked, user-local
 │   ├── 10-fonts.sh         JetBrainsMono Nerd Font, user-local, no root
 │   ├── 20-gnome.sh         workspaces, keybindings, rofi launcher
 │   ├── 30-dotfiles.sh      symlinks, .bashrc hook, git include, default term
@@ -321,8 +331,9 @@ alter/
 │   ├── ghostty/config
 │   ├── rofi/{config.rasi,themes/catppuccin-mocha.rasi}
 │   ├── bat/themes/         Catppuccin Mocha tmTheme for bat + delta
-│   ├── shell/devtools.sh   fzf/zoxide/fd/bat/eza wiring, every block guarded
+│   ├── shell/devtools.sh   fzf/zoxide/fd/bat/eza/starship wiring, every block guarded
 │   ├── shell/greeting.sh   new-terminal banner + `fetch`, with a fallback
+│   ├── starship/starship.toml  the prompt: two lines, Catppuccin Mocha palette
 │   ├── fastfetch/logo.txt  the ASCII art — edit this, no build step
 │   ├── fastfetch/config.jsonc  what the banner prints, and in what order
 │   ├── fastfetch/vrgl-happy.png  the picture logo.txt was converted from
@@ -556,6 +567,13 @@ Conventions to follow if you extend it (human or agent):
 - **`ding`'s two per-monitor windows are not why a wallpaper repeats.** They
   are the obvious suspect and they are innocent: ding renders a transparent
   background and never reads `picture-uri` or `picture-options`.
+- **starship exits 0 on a broken config.** Feed it a `starship.toml` with an
+  unclosed table and `starship print-config` and `starship prompt` both return
+  0; the `[ERROR] … Unable to parse the config file` goes to stderr and the
+  default prompt is drawn. An unknown key or a missing palette is a `[WARN]`
+  on stderr, again with exit 0, and it repeats at every prompt. A missing
+  config file is silent. `verify.sh` therefore renders one prompt and fails on
+  any stderr output at all, never on the exit code. Observed with 1.26.0.
 
 ### Useful commands
 
@@ -565,6 +583,9 @@ Conventions to follow if you extend it (human or agent):
 ./bootstrap/verify.sh             # check state; exit code = failure count
 ALTER_SKIP_GHOSTTY=1 ./install.sh # skip the third-party PPA
 ALTER_SKIP_FASTFETCH=1 ./install.sh  # ditto; banner falls back to plain
+ALTER_SKIP_STARSHIP=1 ./install.sh   # keep the stock bash prompt
+ALTER_STARSHIP_VERSION=v1.26.0 ./install.sh starship  # pin the prompt's release
+starship explain                     # what each segment of the current prompt is
 fastfetch --list-modules          # everything the banner could show
 ALTER_WS_COUNT=6 ./install.sh     # more workspaces (1-9; pass the same to verify.sh)
 ALTER_ROFI_KEY='<Super>w' ./install.sh
@@ -599,8 +620,8 @@ Tracked in detail in **[`docs/TODO.md`](docs/TODO.md)**. What is left:
 | Next | Item | Why |
 |---|---|---|
 | Phase 3 | **Multiplexer** (tmux) | Long builds still die with their terminal window |
-| Phase 5 | **starship prompt** | The only palette gap left; not in Ubuntu 24.04 repos |
 | — | **Wayland session** | Better multi-monitor; blocked on rofi's window mode being X11-only |
 
-Done since the first pass: PaperWM, Just Perfection, Clipboard Indicator, and
-a single Catppuccin Mocha palette across terminal, launcher, pager and diffs.
+Done since the first pass: PaperWM, Just Perfection, Clipboard Indicator, the
+starship prompt, and a single Catppuccin Mocha palette across terminal,
+launcher, pager, diffs and prompt.

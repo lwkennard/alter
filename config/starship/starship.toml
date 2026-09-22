@@ -1,0 +1,143 @@
+# ~/.config/starship.toml -- a symlink to config/starship/starship.toml in the
+# alter repo (bootstrap/30-dotfiles.sh). Edit here, open a new terminal.
+#
+# Two lines: everything worth knowing on the first, a bare ❯ on the second,
+# so a deep path never pushes the cursor to the right edge. Only the modules
+# named in `format` render; the rest of starship's catalogue stays off.
+# Colours are Catppuccin Mocha names from the palette block at the bottom,
+# matching Ghostty, rofi, fzf, bat and delta.
+
+"$schema" = 'https://starship.rs/config-schema.json'
+add_newline = true
+palette = "catppuccin_mocha"
+
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$python\
+$nodejs\
+$rust\
+$golang\
+$java\
+$cmd_duration\
+$jobs\
+$line_break\
+$character"""
+
+# user@host only when it matters: over ssh, or as root. Locally both stay off.
+[username]
+format = "[$user]($style)@"
+style_user = "lavender"
+style_root = "bold red"
+show_always = false
+
+[hostname]
+ssh_only = true
+format = "[$hostname]($style) "
+style = "lavender"
+
+[directory]
+style = "bold blue"
+truncation_length = 4
+truncate_to_repo = true
+truncation_symbol = "…/"
+read_only = " 󰌾"
+read_only_style = "red"
+
+[git_branch]
+symbol = " "
+style = "mauve"
+format = "on [$symbol$branch(:$remote_branch)]($style) "
+
+# rebase / merge / cherry-pick in progress -- the state you forget you are in
+[git_state]
+style = "bold peach"
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+
+[git_status]
+style = "peach"
+format = "([$all_status$ahead_behind]($style) )"
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+untracked = "?${count}"
+stashed = "*${count}"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+# Language versions only appear inside a project of that kind, dimmed so they
+# never compete with the path and branch.
+[python]
+symbol = " "
+style = "subtext0"
+format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
+
+[nodejs]
+symbol = " "
+style = "subtext0"
+format = "[$symbol($version )]($style)"
+
+[rust]
+symbol = " "
+style = "subtext0"
+format = "[$symbol($version )]($style)"
+
+[golang]
+symbol = " "
+style = "subtext0"
+format = "[$symbol($version )]($style)"
+
+[java]
+symbol = " "
+style = "subtext0"
+format = "[$symbol($version )]($style)"
+
+[cmd_duration]
+min_time = 2_000
+style = "yellow"
+format = "took [$duration]($style) "
+
+[jobs]
+symbol = "✦"
+style = "sky"
+format = "[$symbol$number]($style) "
+
+[character]
+success_symbol = "[❯](green)"
+error_symbol = "[❯](red)"
+vimcmd_symbol = "[❮](green)"
+
+[palettes.catppuccin_mocha]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+subtext0 = "#a6adc8"
+overlay2 = "#9399b2"
+overlay1 = "#7f849c"
+overlay0 = "#6c7086"
+surface2 = "#585b70"
+surface1 = "#45475a"
+surface0 = "#313244"
+base = "#1e1e2e"
+mantle = "#181825"
+crust = "#11111b"

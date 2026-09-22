@@ -143,6 +143,7 @@ for f in "$HOME/.config/ghostty/config" "$HOME/.config/rofi/config.rasi" \
          "$HOME/.config/rofi/themes/catppuccin-mocha.rasi" \
          "$HOME/.config/shell/devtools.sh" "$HOME/.config/shell/greeting.sh" \
          "$HOME/.config/fastfetch/config.jsonc" "$HOME/.config/fastfetch/logo.txt" \
+         "$HOME/.config/starship.toml" \
          "$HOME/.config/bat/themes/Catppuccin Mocha.tmTheme" \
          "$HOME/.local/bin/zenity-askpass"; do
   if [ -L "$f" ] && readlink -f "$f" | grep -q "^$ALTER_ROOT/"; then
@@ -153,6 +154,15 @@ done
 _bat=$(command -v batcat || command -v bat) || true
 if [ -n "${_bat:-}" ] && "$_bat" --list-themes 2>/dev/null | grep -qx "Catppuccin Mocha"; then
   runq "$_bat" cache --build && ok "bat cache rebuilt without Catppuccin Mocha"
+fi
+
+hdr "Starship"
+# 05-starship.sh puts the binary (not a symlink) in ~/.local/bin. A starship
+# that lives anywhere else -- apt, cargo, a hand install -- was not ours.
+if [ -f "$HOME/.local/bin/starship" ] && [ ! -L "$HOME/.local/bin/starship" ]; then
+  run rm "$HOME/.local/bin/starship"; ok "removed ~/.local/bin/starship (the stock prompt returns with the next shell)"
+else
+  skip "no ~/.local/bin/starship installed by alter"
 fi
 
 hdr "Shell hooks"

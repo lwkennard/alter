@@ -11,11 +11,12 @@ link "$ALTER_ROOT/config/shell/devtools.sh"                 "$HOME/.config/shell
 link "$ALTER_ROOT/config/shell/greeting.sh"                 "$HOME/.config/shell/greeting.sh"
 link "$ALTER_ROOT/config/fastfetch/config.jsonc"            "$HOME/.config/fastfetch/config.jsonc"
 link "$ALTER_ROOT/config/fastfetch/logo.txt"                "$HOME/.config/fastfetch/logo.txt"
+link "$ALTER_ROOT/config/starship/starship.toml"            "$HOME/.config/starship.toml"
 link "$ALTER_ROOT/bin/zenity-askpass"                       "$HOME/.local/bin/zenity-askpass"
 
 append_once "$HOME/.bashrc" 'config/shell/devtools.sh' \
 '
-# --- alter: dev tooling (fzf / zoxide / fd / bat / eza) ---
+# --- alter: dev tooling (fzf / zoxide / fd / bat / eza / starship) ---
 [ -f "$HOME/.config/shell/devtools.sh" ] && . "$HOME/.config/shell/devtools.sh"'
 
 # Sourced after devtools.sh so the banner is the last thing a new terminal

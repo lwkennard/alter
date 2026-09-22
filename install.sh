@@ -2,14 +2,14 @@
 # alter -- workstation bootstrap.
 #   ./install.sh              run everything
 #   ./install.sh --dry-run    show what would change, touch nothing
-#   ./install.sh gnome only   run a subset (packages|fonts|gnome|dotfiles|extensions|verify)
+#   ./install.sh gnome only   run a subset (packages|starship|fonts|gnome|dotfiles|extensions|verify)
 set -u
 export ALTER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$ALTER_ROOT/bootstrap/lib.sh"
 
-STAGES=(packages fonts gnome dotfiles extensions verify)
+STAGES=(packages starship fonts gnome dotfiles extensions verify)
 declare -A MOD=(
-  [packages]=00-packages.sh [fonts]=10-fonts.sh
+  [packages]=00-packages.sh [starship]=05-starship.sh [fonts]=10-fonts.sh
   [gnome]=20-gnome.sh [dotfiles]=30-dotfiles.sh
   [extensions]=40-extensions.sh [verify]=verify.sh
 )
