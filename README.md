@@ -158,26 +158,20 @@ older config. Ghostty does not hot-reload — press `Ctrl+Shift+,`
 
 ### Not in `keys`
 
-`keys` prints `docs/hotkeys.txt`, which is capped at one screen (30 lines) and
-holds only the bindings you cannot guess. These work too, but did not make the
+`keys` prints `docs/hotkeys.txt`, which is capped at 50 lines and gives every
+alter tool at least one line. These bindings work too, but did not make the
 cut:
 
 | Key | Action |
 |---|---|
-| `Super+,` / `Super+.` | Previous / next window along the strip (PaperWM) |
 | `Super+Home` / `Super+End` | First / last window in the strip (PaperWM) |
-| `` Super+` `` | Back to the previous workspace (PaperWM) |
 | `Super+T` | Take window: carry it with you to another position (PaperWM) |
-| `Super+C` | Centre the window horizontally (PaperWM) |
 | `Super+Alt+↑/↓` | Swap the monitors above / below (PaperWM) |
 | `Super+N` | New window, alias of `Super+Return` (PaperWM) |
 | `Ctrl+Super+1..9` | Dock favourite N (stock GNOME) |
 | `Super` / `Super+A` | Overview / app grid (stock GNOME) |
 | `Alt+F4` / `Super+H` | Close / minimise window (stock GNOME) |
-| `Ctrl+Shift+N` / `Q` | New Ghostty window / quit (stock) |
-| `Ctrl+Plus` / `-` / `0` | Font bigger / smaller / reset (stock Ghostty) |
-| `Ctrl+Shift+P` / `Ctrl+Shift+,` | Ghostty command palette / reload config (stock) |
-| in rofi: `Ctrl+N` / `Ctrl+P` | Next / previous match (`Alt+Tab` / `Alt+Shift+Tab` too); `Ctrl+Enter` accepts typed text as-is |
+| in rofi: `Ctrl+Enter` | Run the typed text as-is; `Alt+Tab` / `Alt+Shift+Tab` also move through matches |
 
 ---
 
@@ -342,7 +336,7 @@ alter/
 ├── bin/img2logo            image -> ASCII/block logo art (needs python3-pil)
 ├── bin/merge-latest        land the newest worktree branch on main and push it
 ├── docs/
-│   ├── hotkeys.txt         one-screen hotkey reference (`keys`); shape enforced by verify.sh
+│   ├── hotkeys.txt         hotkey + tool reference (`keys`); shape enforced by verify.sh
 │   └── TODO.md             outstanding work, acceptance criteria, loose ends
 ├── local/README.md         machine-specific env.sh is sourced when readable
 ├── .gitignore              local files, backups, and editor junk
@@ -373,8 +367,9 @@ Conventions to follow if you extend it (human or agent):
 - **Changed a keybinding?** Update `docs/hotkeys.txt` (what `keys` prints) and
   the keybinding sections above, in the same commit. Added, removed or
   modified — a stale printout is an incomplete change. `hotkeys.txt` has a
-  hard shape: at most 30 lines of 72 columns, keystrokes and actions only, no
-  history or rationale (that lives here). `verify.sh` fails on violations.
+  hard shape: at most 50 lines of 72 columns with one blank border line above
+  and below, keys and tool commands only, a line for every tool alter installs,
+  no history or rationale (that lives here). `verify.sh` fails on violations.
   Full rule in [`CLAUDE.md`](CLAUDE.md).
 - **Changed anything on the machine?** Put it in a bootstrap stage, check it in
   `verify.sh`, revert it in `uninstall.sh` — and write what went wrong into

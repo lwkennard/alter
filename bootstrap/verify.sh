@@ -386,36 +386,44 @@ fi
 
 hdr "Hotkey reference"
 # docs/hotkeys.txt is what `keys` prints. It has a hard shape (CLAUDE.md,
-# "Rule: docs/hotkeys.txt"): it must fit one screen without scrolling and hold
-# nothing but hotkeys. The numbers are the rule; the checks below are the rule
-# made mechanical, so a stale or padded file fails here instead of at 2am.
-HK="$ALTER_ROOT/docs/hotkeys.txt"; HK_MAX_LINES=30; HK_MAX_COLS=72
+# "Rule: docs/hotkeys.txt"): a fixed height, one blank border line top and
+# bottom, nothing but hotkeys and tool commands, and a line for every tool
+# alter installs. The numbers are the rule; the checks below are the rule made
+# mechanical, so a stale or padded file fails here instead of at 2am.
+HK="$ALTER_ROOT/docs/hotkeys.txt"; HK_MAX_LINES=50; HK_MAX_COLS=72
 if [ ! -s "$HK" ]; then
   err "docs/hotkeys.txt MISSING or empty -- 'keys' prints nothing"; fails=$((fails+1))
 else
   _n=$(grep -c '' "$HK")
   [ "$_n" -le "$HK_MAX_LINES" ] && ok "hotkeys.txt is $_n lines (max $HK_MAX_LINES)" \
-    || { err "hotkeys.txt is $_n lines; max is $HK_MAX_LINES -- drop or merge a line, do not scroll"; fails=$((fails+1)); }
+    || { err "hotkeys.txt is $_n lines; max is $HK_MAX_LINES -- drop or merge a line"; fails=$((fails+1)); }
   _w=$(awk '{ if (length($0) > m) m = length($0) } END { print m+0 }' "$HK")
   [ "$_w" -le "$HK_MAX_COLS" ] && ok "hotkeys.txt widest line is $_w cols (max $HK_MAX_COLS)" \
     || { err "hotkeys.txt has a $_w-col line; max is $HK_MAX_COLS"; fails=$((fails+1)); }
-  # Every line is a section header (" NAME") or a binding: key at col 4,
-  # description at col 27, nothing else -- no blanks, titles or notes.
-  _bad=$(awk '!/^ [A-Z][A-Z ()]*$/ && !/^   [^ ].{21} [^ ]/ { printf "    %d: %s\n", NR, $0 }' "$HK")
+  # Border: exactly one blank line first and last, none anywhere else.
+  [ -z "$(sed -n '1p' "$HK")" ] && [ -z "$(sed -n '$p' "$HK")" ] && ok "hotkeys.txt: blank border line above and below" \
+    || { err "hotkeys.txt: first and last line must each be blank"; fails=$((fails+1)); }
+  # Between the borders every line is a section header (" NAME") or an entry:
+  # key or command at col 4, description at col 27, nothing else.
+  _bad=$(awk -v last="$_n" 'NR > 1 && NR < last && !/^ [A-Z][A-Z ()]*$/ && !/^   [^ ].{21} [^ ]/ { printf "    %d: %s\n", NR, $0 }' "$HK")
   [ -z "$_bad" ] && ok "hotkeys.txt: every line is a header or a key/description pair" \
     || { err "hotkeys.txt lines that are neither a header nor key@4/description@27:"; printf '%s\n' "$_bad" >&2; fails=$((fails+1)); }
   # Rationale, history and stock-vs-repo comparison belong in README, not here.
   _bad=$(grep -nE '\[stock\]|\bwas:|\(was |default|instead of|replaces' "$HK")
   [ -z "$_bad" ] && ok "hotkeys.txt: no history or comparison text" \
     || { err "hotkeys.txt carries history/comparison text (README owns that):"; printf '%s\n' "$_bad" | sed 's/^/    /' >&2; fails=$((fails+1)); }
-  # The fixed budget is derived from a full-height Ghostty window on this
-  # display (34 rows). If this terminal is shorter than that, say so.
-  if [ -t 1 ] && have tput; then
-    _rows=$(tput lines 2>/dev/null || echo 0)
-    if [ "${_rows:-0}" -gt 0 ] && [ "$_n" -gt $((_rows - 4)) ]; then
-      warn "hotkeys.txt ($_n lines) will scroll in this $_rows-row terminal; the budget assumes >= $((HK_MAX_LINES + 4)) rows"
-    fi
-  fi
+  # Every tool alter installs has at least one line. Left side: the tool as
+  # named in 00-packages.sh / 05-starship.sh / 40-extensions.sh; right side: the pattern that
+  # proves its line exists. Add a pair here when you add a tool.
+  _miss=""
+  for pair in 'rofi:rofi' 'PaperWM:PAPERWM' 'Clipboard Indicator:clipboard' 'ghostty:GHOSTTY' \
+              'fzf:(fzf)' 'zoxide:(zoxide)' 'eza:(eza)' 'bat:^   bat ' 'fd-find:^   fd ' \
+              'ripgrep:^   rg ' 'git-delta:delta' 'gh:^   gh ' 'fastfetch:(fastfetch)' \
+              'starship:^   starship ' 'keys:^   keys '; do
+    grep -qE -- "${pair#*:}" "$HK" || _miss="$_miss ${pair%%:*}"
+  done
+  [ -z "$_miss" ] && ok "hotkeys.txt: every alter tool has a line" \
+    || { err "hotkeys.txt has no line for:$_miss"; fails=$((fails+1)); }
 fi
 
 hdr "Result"

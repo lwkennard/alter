@@ -1,12 +1,15 @@
+
  DESKTOP
    Super+1..4 / +Shift    go to workspace N / move window there
    Super+Alt+Left/Right   previous / next workspace
    Super+Shift+Left/Right move window to previous / next workspace
-   Super+Space            switch window; Super+W with 2+ layouts
+   Super+Space            switch window (rofi); Super+W with 2+ layouts
+   Ctrl+N / Ctrl+P        rofi: next / previous match
    Super+V                clipboard history
    Ctrl+Alt+T             new terminal
  WINDOWS (PAPERWM)
    Super+arrows           focus window left / right / up / down
+   Super+, / Super+.      previous / next window
    Super+Ctrl+arrows      move window left / right / up / down
    Super+Tab / Alt+Tab    cycle windows
    Super+Shift+Alt+arrows focus other monitor
@@ -14,8 +17,10 @@
    Super+I / Super+O      pull next window into column / push it out
    Super+R / +Shift       cycle window width / height
    Super+F / +Shift       maximise width / fullscreen
+   Super+C                centre window
    Super+Return           new window
    Super+BackSpace        close window
+   Super+`                back to previous workspace
    Super+Escape / +Shift  toggle scratch window / scratch layer
  TERMINAL (GHOSTTY)
    Ctrl+Shift+T / W       new / close tab
@@ -24,7 +29,21 @@
    Ctrl+Shift+O / E       split right / down
    Ctrl+Shift+arrows      focus split left / right / up / down
    Ctrl+Shift+Enter       zoom / unzoom split
+   Ctrl+Shift+N / Q       new window / quit
    Ctrl+Shift+C / V       copy / paste
+   Ctrl+Plus / - / 0      font bigger / smaller / reset
+   Ctrl+Shift+P / +,      command palette / reload config
  SHELL
-   Ctrl+R                 search command history
-   Ctrl+T / Alt+C         insert a file path / cd into a directory
+   Ctrl+R                 search command history (fzf)
+   Ctrl+T / Alt+C         insert a file path / cd into a directory (fzf)
+   z DIR / zi / z -       jump to visited dir / pick / back (zoxide)
+   ll / la / lt           list long with git / all / tree (eza)
+   bat FILE               view a file with highlighting
+   fd PATTERN             find files by name
+   rg PATTERN             search file contents
+   git diff / show / log  diff rendered by delta
+   gh                     GitHub CLI: gh pr, gh issue, gh auth
+   fetch                  reprint the terminal banner (fastfetch)
+   starship explain       what each prompt segment means
+   keys [PATTERN]         this list, filtered
+

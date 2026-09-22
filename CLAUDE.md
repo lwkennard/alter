@@ -6,97 +6,139 @@ The rules below are in addition to those and are not optional.
 
 ---
 
-## Rule: `docs/hotkeys.txt` fits one screen and holds nothing but hotkeys
+## Rule: `docs/hotkeys.txt` is one fixed-height screen of keys and tools
 
 `keys` prints [`docs/hotkeys.txt`](docs/hotkeys.txt) verbatim (see the `keys`
 function in `config/shell/devtools.sh`). The file is read straight out of the
 repo — no copy, no build step — so an edit to it *is* the change to the
-printout. It exists to answer exactly one question, **"what is the hotkey to
-do X?"**, at a glance, without scrolling. Everything below follows from that.
+printout. It exists to answer two questions and nothing else: **"what is the
+hotkey to do X?"** and **"what do I type to use tool Y?"** — at a glance, with
+every tool alter installs present, and no scrolling past the height budget.
 
-`./bootstrap/verify.sh` enforces the shape limits mechanically (section
-"Hotkey reference"). A change that fails them is not finished.
+`./bootstrap/verify.sh` enforces the shape and the tool coverage mechanically
+(section "Hotkey reference"). A change that fails it is not finished.
 
 ### Shape — hard limits
 
 | Limit | Value | Why |
 |---|---|---|
-| Height | **≤ 30 lines** | a full-height Ghostty window on this display is 34 rows; 4 are kept for the `keys` command line and the prompt after it |
+| Height | **≤ 50 lines**, borders included | the chosen budget: one tall terminal, no paging |
 | Width | **≤ 72 characters** per line | fits the narrowest window the file is read in |
-| Blank lines | **none** | a blank line is a hotkey that did not fit |
-| Line kinds | exactly two | a **section header** (`␣NAME`, upper case, one leading space) or a **binding line** (key at column 4, description at column 27) |
-| Key column | ≤ 22 characters | columns 4–25; column 26 is the separating space |
+| Border | line 1 and the last line are blank; **no other blank lines** | one line of air above and below the text; a blank line inside is an entry that did not fit |
+| Line kinds | exactly two between the borders | a **section header** (`␣NAME`, upper case, one leading space) or an **entry** (key or command at column 4, description at column 27) |
+| Key/command column | ≤ 22 characters | columns 4–25; column 26 is the separating space |
 | Description | ≤ 46 characters | columns 27–72 |
 
-The budget is fixed. **Adding a line means removing or merging another.** When
-you must choose, keep the binding a user cannot guess and cannot look up
-elsewhere, in this order: repo-set keys that replaced a stock key → PaperWM
-keys → stock keys that people forget → stock keys everyone knows (`Ctrl+Shift+C`
-lives on borrowed time). Anything cut moves to the README's keybinding
-section, so it is still findable — just not in `keys`.
+The budget is fixed. **Adding a line means removing or merging another once
+the file is full.** When you must choose, keep what a user cannot guess and
+cannot look up elsewhere, in this order: repo-set keys that replaced a stock
+key → the one line each tool is owed (below) → PaperWM keys → stock keys
+people forget → stock keys everyone knows. Anything cut moves to the README's
+"Not in `keys`" table, so it is still findable — just not in `keys`.
+
+### Coverage — every tool gets a line
+
+Every tool alter installs has **at least one entry**, even a tool with no
+hotkey: for those the command is the key (`z DIR / zi / z -`, `bat FILE`,
+`fetch`). `verify.sh` checks the list below by pattern; a new tool added to
+`APT_PKGS`, a `bootstrap/NN-*.sh` install stage (Ghostty, fastfetch,
+starship) or the extension `WANT` list joins
+this table, the `hotkeys.txt` `SHELL` (or fitting) section, and the
+`verify.sh` pair list in the same commit.
+
+| Tool | Its line | Proven by |
+|---|---|---|
+| rofi | `Super+Space` and the `rofi:` lines under `DESKTOP` | `rofi` |
+| PaperWM | the `WINDOWS (PAPERWM)` section | `PAPERWM` |
+| Clipboard Indicator | `Super+V  clipboard history` | `clipboard` |
+| Ghostty | the `TERMINAL (GHOSTTY)` section | `GHOSTTY` |
+| fzf | `Ctrl+R`, `Ctrl+T / Alt+C` | `(fzf)` |
+| zoxide | `z DIR / zi / z -` | `(zoxide)` |
+| eza | `ll / la / lt` | `(eza)` |
+| bat | `bat FILE` | `^   bat ` |
+| fd-find | `fd PATTERN` | `^   fd ` |
+| ripgrep | `rg PATTERN` | `^   rg ` |
+| git-delta | `git diff / show / log` | `delta` |
+| gh | `gh` | `^   gh ` |
+| fastfetch | `fetch` | `(fastfetch)` |
+| starship | `starship explain` | `^   starship ` |
+| `keys` itself | `keys [PATTERN]` | `^   keys ` |
+
+Just Perfection, the Nerd Font and the Catppuccin theme have no key and no
+command, so they have no line; they are described in `README.md`.
 
 ### Content — what a line may say
 
-- **Only keystrokes.** A line names a key or key family and the action it
-  performs. No commands, aliases, functions, environment variables, file
-  paths, or troubleshooting steps — those are documented in `README.md`
-  ("What you get", "The terminal greeting", "Useful commands").
+- **Keys and commands only.** An entry names a key, a key family, or the
+  command that invokes a tool, and the action it performs. No environment
+  variables, file paths, flags lists or troubleshooting steps — those are
+  documented in `README.md` ("What you get", "The terminal greeting", "Useful
+  commands").
 - **No rationale, no history, no comparison.** Nothing about what a key *used
   to* do, what GNOME or Ghostty bind by default, what this repo changed, or
   why. No `[stock]` marker, no `(was …)`, no "instead of", no "replaces".
   `verify.sh` greps for these words and fails on them. That story belongs in
   `README.md` → "Keybindings" and in comments next to the setting.
-- **No title, no legend, no usage hint.** The first line is the first section
-  header. `keys` is documented in the README, not in its own output.
+- **No title, no legend.** The first line after the border is the first
+  section header. `keys` has its own entry (`keys [PATTERN]`) and nothing more.
 - **The description is the action**, in plain words, as short as it can be
-  while still unambiguous: `close window`, `move tab left / right`. No
-  trailing notes. The one allowed qualifier is a per-machine variant on the
-  same line, e.g. `Super+W with 2+ layouts`.
-- **One self-contained line per binding.** `keys PATTERN` greps the file, so
-  a line must read correctly on its own. Sibling keys that share one action
-  may share a line, split with ` / ` on both sides (`Ctrl+Shift+T / W` →
+  while still unambiguous: `close window`, `move tab left / right`. A tool
+  name in parentheses at the end is allowed and is how a tool's line is found
+  (`(fzf)`, `(eza)`). The one other allowed qualifier is a per-machine variant
+  on the same line, e.g. `Super+W with 2+ layouts`.
+- **One self-contained line per entry.** `keys PATTERN` greps the file, so a
+  line must read correctly on its own. Sibling keys that share one action may
+  share a line, split with ` / ` on both sides (`Ctrl+Shift+T / W` →
   `new / close tab`). `X / +Mod` means the same key with `Mod` added
   (`Super+R / +Shift` → `cycle window width / height`).
 - **Sections are fixed:** `DESKTOP`, `WINDOWS (PAPERWM)`, `TERMINAL
-  (GHOSTTY)`, `SHELL`, in that order. A new section is only justified by a
-  new component that binds its own keys — and it still has to fit in 30 lines.
+  (GHOSTTY)`, `SHELL`, in that order. Tool commands live under `SHELL`. A new
+  section is only justified by a new component that binds its own keys — and
+  it still has to fit the height budget.
 - **Key spelling:** `Super`, `Ctrl`, `Alt`, `Shift`, `+` between modifiers,
   `Left/Right/Up/Down` or `arrows`, `PgUp/PgDn`, `Return`, `BackSpace`,
-  `Escape`, `Tab`, `1..4`. Match the existing lines; do not introduce a second
-  spelling of the same key.
+  `Escape`, `Tab`, `1..4`. Command placeholders are upper case: `DIR`, `FILE`,
+  `PATTERN`; optional ones in brackets: `[PATTERN]`. Match the existing lines;
+  do not introduce a second spelling of the same key.
 
 ### Sync — what owns which lines
 
-**Any change to a keybinding — added, removed, or modified — must update
-`docs/hotkeys.txt` in the same commit**, if that key is in the printout or
-belongs in it. A stale printout is an incomplete change.
+**Any change to a keybinding or to a tool's invoking command — added, removed,
+or modified — must update `docs/hotkeys.txt` in the same commit.** A stale
+printout is an incomplete change.
 
 | Source | What it owns in the printout |
 |---|---|
 | `bootstrap/20-gnome.sh` | `DESKTOP` — workspace switching, move-to-workspace, `Super+Space`/rofi (and the `Super+W` variant), `ALTER_WS_COUNT` / `ALTER_ROFI_KEY` behaviour |
 | `bootstrap/40-extensions.sh` | `WINDOWS (PAPERWM)` — every PaperWM binding the repo sets, unbinds or relies on; `Super+V` for Clipboard Indicator under `DESKTOP` |
 | `config/ghostty/config` | `TERMINAL (GHOSTTY)` — every `keybind =` line, plus the stock bindings the repo deliberately relies on |
-| `config/shell/devtools.sh` | `SHELL` — the fzf key bindings only (`Ctrl+R`, `Ctrl+T`, `Alt+C`); aliases and commands are README material |
-| `config/rofi/config.rasi` | the `kb-*` keys, if any make the cut; today they do not, and the README carries them |
+| `config/shell/devtools.sh` | `SHELL` — the fzf key bindings, the `z`/`zi`, `ll`/`la`/`lt`, `bat`, `fd`, `rg` lines, and `keys` |
+| `config/git/gitconfig.include` | the `git diff / show / log` (delta) line |
+| `config/shell/greeting.sh` | the `fetch` line |
+| `bootstrap/00-packages.sh` | one line per package in `APT_PKGS`, plus Ghostty and fastfetch |
+| `bootstrap/05-starship.sh`, `config/starship/starship.toml` | the `starship explain` line |
+| `config/rofi/config.rasi` | the `rofi:` lines — the `kb-*` keys that made the cut; the README carries the rest |
 
-A new `bootstrap/NN-*.sh` stage that sets keybindings joins this table when
-you add the stage. An extension that ships its own bindings counts: the user
-cannot tell which component bound a key, only that it does something.
+A new `bootstrap/NN-*.sh` stage that sets keybindings or installs a tool joins
+this table when you add the stage. An extension that ships its own bindings
+counts: the user cannot tell which component bound a key, only that it does
+something.
 
 ### What to update
 
 1. **`docs/hotkeys.txt`** — add, remove or correct the line within the shape
    limits above. Keys stay conventional-looking and aligned with their
    neighbours.
-2. **`README.md`** → "Keybindings" — the same facts, with the rationale and
-   history that `hotkeys.txt` is not allowed to carry. Bindings dropped from
-   `hotkeys.txt` for space go in the "Not in `keys`" table there. Update it,
-   or the two references disagree.
+2. **`README.md`** → "Keybindings" and "What you get" — the same facts, with
+   the rationale and history that `hotkeys.txt` is not allowed to carry.
+   Bindings dropped from `hotkeys.txt` for space go in the "Not in `keys`"
+   table there. Update it, or the two references disagree.
 3. **`bootstrap/verify.sh`** — for a GNOME binding, add or adjust the
    `gsettings get` check, per the README convention that anything new gets a
-   verify check. If you change a shape limit, change `HK_MAX_LINES` /
-   `HK_MAX_COLS` there **and** in the table above, in the same commit, and
-   say in the commit why the screen budget moved.
+   verify check. For a new tool, add its `name:pattern` pair to the coverage
+   loop. If you change a shape limit, change `HK_MAX_LINES` / `HK_MAX_COLS`
+   there **and** in the table above, in the same commit, and say in the
+   commit why the budget moved.
 4. **`uninstall.sh`** — if a new GNOME key is now set, make sure the reset path
    puts the default back.
 
@@ -104,14 +146,15 @@ cannot tell which component bound a key, only that it does something.
 
 ```bash
 ./bootstrap/verify.sh          # "Hotkey reference" section all ✓, exit 0
-keys                           # read the whole printout on a full-height window: no scroll
+keys                           # read the whole printout; the blank borders are part of it
 keys <the key you touched>     # the grep path must return your line alone, and it must make sense alone
 ghostty +list-keybinds         # ground truth for the Ghostty block
 ```
 
 `docs/hotkeys.txt` is the one file a user reads at 2am when something stopped
 working. A wrong line in it is a bug of the same severity as a wrong line in
-the shell config; a line that pushes it past one screen is the same bug.
+the shell config; a line that pushes it past the budget, or a tool with no
+line at all, is the same bug.
 
 ---
 
