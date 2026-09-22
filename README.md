@@ -6,7 +6,7 @@ Clone it onto a new machine, run one script, log out and back in.
 Built and verified on **Ubuntu 24.04 / GNOME 46 / X11**.
 
 ```bash
-git clone <your-repo-url> ~/alter
+git clone <repo-url> ~/alter
 cd ~/alter
 ./install.sh --dry-run   # see exactly what would change
 ./install.sh             # do it
