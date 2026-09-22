@@ -1,6 +1,15 @@
 # ~/.config/shell/devtools.sh — sourced from ~/.bashrc
 # Every block is guarded, so this file is safe to source before the tools exist.
 
+# ---------- ~/.local/bin on PATH ----------
+# Where 05-starship.sh (and zenity-askpass) install to. Ubuntu's ~/.profile adds
+# it only if the directory existed at login, so the first terminal after a
+# fresh install would otherwise not find starship until the next re-login.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) [ -d "$HOME/.local/bin" ] && PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 # ---------- fd / bat / eza (Debian renames some binaries) ----------
 command -v fdfind  >/dev/null && alias fd='fdfind'
 command -v batcat  >/dev/null && { alias bat='batcat'; export BAT_THEME="Catppuccin Mocha"; }
@@ -37,6 +46,13 @@ command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 
 # ---------- git-delta ----------
 # Enabled via ~/.gitconfig, nothing to do here.
+
+# ---------- starship: the prompt ----------
+# Replaces PS1 for interactive shells; layout in ~/.config/starship.toml
+# (config/starship/starship.toml). Kept after zoxide, which also hooks
+# PROMPT_COMMAND -- starship chains whatever is already there. Without the
+# binary (ALTER_SKIP_STARSHIP=1, non-Linux) the stock Ubuntu prompt stays.
+command -v starship >/dev/null && eval "$(starship init bash)"
 
 # ---------- keys: print the hotkey reference ----------
 # A function, not an alias: aliases are not expanded in non-interactive shells.

@@ -1,6 +1,6 @@
 # TODO — outstanding workflow implementation
 
-Phases 0–2, 4 and 6 of the original plan are **done and verified** on Ubuntu 24.04 /
+Phases 0–2 and 4–6 of the original plan are **done and verified** on Ubuntu 24.04 /
 GNOME 46 / X11. This file tracks what is left, in the order it should be
 adopted. Each item is self-contained enough to pick up cold.
 
@@ -17,7 +17,7 @@ Status key: `TODO` not started · `PARTIAL` some of it landed · `DONE` shipped
 | 1 | rofi, fzf, zoxide, fd, bat, eza, delta | `bootstrap/00-packages.sh`, `config/shell/devtools.sh` |
 | 2 | Ghostty as default terminal, GNOME-parity keymap | `config/ghostty/config`, `bootstrap/30-dotfiles.sh` |
 | 4 | **PaperWM** scrollable tiling; Tiling Assistant disabled | `bootstrap/40-extensions.sh` |
-| 5 | **Catppuccin Mocha everywhere** — terminal, rofi, fzf, bat, delta, desktop | `config/git/gitconfig.include`, `config/bat/themes/` |
+| 5 | **Catppuccin Mocha everywhere** — terminal, rofi, fzf, bat, delta, prompt, desktop; **starship** prompt | `config/git/gitconfig.include`, `config/bat/themes/`, `bootstrap/05-starship.sh`, `config/starship/` |
 | 6 | **Just Perfection**, **Clipboard Indicator** (`Super+V`) | `bootstrap/40-extensions.sh` |
 
 ---
@@ -82,17 +82,21 @@ and horizontal monitor-swap bindings are cleared to avoid collisions.
 PaperWM's per-monitor workspace model. PaperWM uses GNOME workspaces
 underneath, so it should, but this has not been exercised yet.
 
-## Phase 5 — Prompt and theme consistency  ·  `PARTIAL`
+## Phase 5 — Prompt and theme consistency  ·  `DONE`
 
-**Done:** JetBrainsMono Nerd Font; Catppuccin Mocha in Ghostty, rofi and fzf.
+**Done:** JetBrainsMono Nerd Font; Catppuccin Mocha in Ghostty, rofi, fzf,
+bat, delta and the prompt.
 
-**Outstanding:**
-
-- **`starship` prompt** — `TODO`. Not in Ubuntu 24.04 repos; install via the
-  upstream script or cargo. Add `config/starship.toml`, symlink it, and add
-  `eval "$(starship init bash)"` to `config/shell/devtools.sh` behind the
-  existing `command -v` guard. Value here is git branch + state visible at a
-  glance in deep trees.
+- **`starship` prompt** — `DONE`. Not in Ubuntu 24.04 repos and no PPA, so
+  `bootstrap/05-starship.sh` fetches the static musl release tarball from
+  GitHub, checks the published sha256 and installs the binary to
+  `~/.local/bin` — no root, no `curl | sh`. `config/starship/starship.toml`
+  is linked to `~/.config/starship.toml`; `config/shell/devtools.sh` runs
+  `starship init bash` behind a `command -v` guard and puts `~/.local/bin` on
+  PATH so the first terminal after install already has the prompt.
+  `ALTER_SKIP_STARSHIP=1` keeps the stock prompt; `ALTER_STARSHIP_VERSION`
+  pins a release. Verified by `bootstrap/verify.sh` (binary, symlink,
+  `starship_precmd` defined, `starship print-config` parses).
 - **Palette split** — `DONE`. `config/bat/themes/Catppuccin Mocha.tmTheme` is
   carried in the repo, symlinked by `30-dotfiles.sh`, and `bat cache --build`
   runs automatically. `delta` uses the official `catppuccin/delta` colour block

@@ -25,6 +25,14 @@ runq() {
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# 05-starship.sh installs to ~/.local/bin. Ubuntu's ~/.profile only adds that
+# to PATH if the directory existed at login, so on a first run `have starship`
+# would miss the binary just installed and the next run would fetch it again.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) [ -d "$HOME/.local/bin" ] && PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 # Distro / session detection
 os_id()        { . /etc/os-release 2>/dev/null && echo "${ID:-unknown}"; }
 os_codename()  { . /etc/os-release 2>/dev/null && echo "${VERSION_CODENAME:-unknown}"; }
