@@ -371,6 +371,18 @@ if have fastfetch && [ -f "$HOME/.config/fastfetch/config.jsonc" ]; then
 fi
 bash -c '. "$HOME/.config/shell/greeting.sh"; type -t fetch' 2>/dev/null | grep -q function \
   && ok "'fetch' available in the shell" || { err "'fetch' NOT defined by greeting.sh"; fails=$((fails+1)); }
+# `reset` is wrapped so the banner comes back after a terminal reset. It has
+# to be a function that still reaches the real binary: a wrapper that shadows
+# reset without `command reset` would recurse, or leave the terminal unreset.
+if bash -c '. "$HOME/.config/shell/greeting.sh"; type -t reset' 2>/dev/null | grep -q function; then
+  if have reset; then
+    ok "'reset' wrapped by greeting.sh (reprints the banner after the reset)"
+  else
+    warn "'reset' wrapped by greeting.sh, but no reset binary on this machine (ncurses-bin?)"
+  fi
+else
+  err "'reset' NOT wrapped by greeting.sh -- a reset terminal stays blank"; fails=$((fails+1))
+fi
 # Does a new terminal really print it? Compare a real login+interactive shell
 # with the same shell greeting-suppressed; the size difference IS the banner,
 # whichever backend drew it. ALTER_GREETED has to be cleared first: run from a
@@ -384,6 +396,19 @@ if have script; then
   else
     err "a login shell prints no banner -- is the greeting hook in ~/.bashrc?"
     say  "    grep -n 'shell/greeting.sh' ~/.bashrc"
+    fails=$((fails+1))
+  fi
+fi
+# And after `reset`? Same measurement, with the greeting suppressed on the
+# way in so only the wrapper's banner can account for the difference. The
+# real reset sleeps a second by design, so this check costs about two.
+if have script && have reset; then
+  _on=$(env -u ALTER_GREETED script -qec 'ALTER_NO_GREETING=1 bash -lic "ALTER_NO_GREETING=0 reset"' /dev/null 2>/dev/null | wc -c)
+  _off=$(env -u ALTER_GREETED script -qec 'ALTER_NO_GREETING=1 bash -lic "reset"' /dev/null 2>/dev/null | wc -c)
+  if [ "${_on:-0}" -gt "${_off:-0}" ]; then
+    ok "'reset' brings the banner back ($(( _on - _off )) bytes)"
+  else
+    err "'reset' leaves the terminal blank -- is greeting.sh's reset wrapper sourced?"
     fails=$((fails+1))
   fi
 fi

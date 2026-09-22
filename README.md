@@ -36,7 +36,7 @@ cd ~/alter
 | **[delta](https://github.com/dandavison/delta)** | git diffs are hard to scan | Automatic for `git diff`/`show`/`log -p` |
 | **[starship](https://starship.rs)** | the stock prompt shows nothing about git or the toolchain | The prompt: path, branch, dirty/ahead state, rebase in progress, slow-command time; `user@host` only over ssh |
 | **JetBrainsMono Nerd Font** | icons render as tofu without it | Terminal font; needed by most modern prompts |
-| **[fastfetch](https://github.com/fastfetch-cli/fastfetch)** | a new terminal tells you nothing about the machine it is on | The banner every terminal opens with. `fetch` reprints it |
+| **[fastfetch](https://github.com/fastfetch-cli/fastfetch)** | a new terminal tells you nothing about the machine it is on | The banner every terminal opens with. `fetch` reprints it, and so does `reset` |
 | **[PaperWM](https://extensions.gnome.org/extension/6099/paperwm/)** | manual window placement wastes a wide screen | Scrollable tiling, per-monitor workspaces. `Super+←/→` scrolls the strip |
 | **Just Perfection** | GNOME's shell chrome isn't tunable | Boots to desktop, faster animations, wrapping workspaces |
 | **Clipboard Indicator** | copying between editor/terminal/browser loses history | `Super+V`, last 50 copies |
@@ -295,6 +295,7 @@ one, `fastfetch --help <module>` its options.
 | Want | Do |
 |---|---|
 | Print it again | `fetch` (takes fastfetch flags when installed: `fetch --logo none`) |
+| Clear the terminal and get it back | `reset` — the stock terminal reset, wrapped in `greeting.sh` to reprint the banner afterwards |
 | Try someone else's art | `fetch --logo-type file --logo /path/to/art.txt` |
 | Use a picture you have | `bin/img2logo pic.png --rows 13 --style ascii > config/fastfetch/logo.txt` |
 | Stop it appearing | `export ALTER_NO_GREETING=1` in `~/.bashrc` |
@@ -304,6 +305,14 @@ It prints **once per terminal**: `greeting.sh` exports `ALTER_GREETED` holding
 the tty it printed on, so a `bash` started inside this window shares that tty
 and stays quiet, while a new window is a new pts and greets. `fetch` ignores
 the marker and always prints.
+
+`reset` prints it too. The stock `reset` (ncurses `tset`) reinitialises the
+terminal and leaves it as blank as a new window, so `greeting.sh` wraps it in a
+function that runs the real `/usr/bin/reset` — flags and exit status passed
+through — and then calls `fetch`. It obeys the same opt-outs as the automatic
+greeting (`ALTER_NO_GREETING=1`, no tty), because `reset` is a request for a
+clean screen, not for the banner. The one-second pause before the banner is
+`reset`'s own, not the greeting's.
 
 If fastfetch is not installed — a non-Debian machine, or
 `ALTER_SKIP_FASTFETCH=1` — the banner still appears, drawn by a fallback in
@@ -333,7 +342,7 @@ alter/
 │   ├── rofi/{config.rasi,themes/catppuccin-mocha.rasi}
 │   ├── bat/themes/         Catppuccin Mocha tmTheme for bat + delta
 │   ├── shell/devtools.sh   fzf/zoxide/fd/bat/eza/starship wiring, every block guarded
-│   ├── shell/greeting.sh   new-terminal banner + `fetch`, with a fallback
+│   ├── shell/greeting.sh   new-terminal banner + `fetch`, `reset` wrapper, fallback
 │   ├── starship/starship.toml  the prompt: two lines, Catppuccin Mocha palette
 │   ├── fastfetch/logo.txt  the ASCII art — edit this, no build step
 │   ├── fastfetch/config.jsonc  what the banner prints, and in what order
