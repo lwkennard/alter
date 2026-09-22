@@ -44,7 +44,7 @@
    rg PATTERN             search file contents
    git diff / show / log  diff rendered by delta
    gh                     GitHub CLI: gh pr, gh issue, gh auth
-   fetch                  reprint the terminal banner (fastfetch)
+   fetch / reset          reprint banner / reset + banner (fastfetch)
    starship explain       what each prompt segment means
    keys [PATTERN]         this list, filtered
 

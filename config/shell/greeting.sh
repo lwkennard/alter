@@ -3,6 +3,7 @@
 # `fetch` to print it again on demand.
 #
 #   fetch                 print it now (any fastfetch flags are passed through)
+#   reset                 the usual terminal reset, then the banner again
 #   ALTER_NO_GREETING=1   never print it automatically
 #   ALTER_GREETED         the tty this banner was last printed on
 #
@@ -74,6 +75,23 @@ fetch() {
   if command -v fastfetch >/dev/null; then fastfetch "$@"; rc=$?; else _alter_fetch_plain; rc=$?; fi
   echo
   return $rc
+}
+
+# `reset` reinitialises the terminal and leaves the same blank screen a new
+# window opens on -- except that a new window then greets and a reset one did
+# not. Wrap it so it does. `command reset` is the real /usr/bin/reset (ncurses
+# tset, which is also why there is a one-second pause before anything appears);
+# its flags pass straight through and its exit status is returned. Everything
+# that stops the automatic greeting stops this one too: a non-interactive shell,
+# no tty on stdout, or ALTER_NO_GREETING=1 -- `reset` asks for a clean screen,
+# not for the banner, so the opt-out has to hold here. `fetch` is still the way
+# to print it regardless.
+reset() {
+  command reset "$@" || return
+  [ "${ALTER_NO_GREETING:-0}" = 1 ] && return 0
+  case $- in *i*) ;; *) return 0 ;; esac
+  [ -t 1 ] || return 0
+  fetch
 }
 
 # Automatic greeting: once per terminal. Every condition here is a reason NOT
