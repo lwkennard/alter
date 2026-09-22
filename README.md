@@ -1,10 +1,9 @@
-# alter
+# ALTER
 
-Reproducible workstation setup: GNOME desktop tuning, a terminal, and a CLI layer.
+Tools for my personal workflow, portablized. 
 Clone it onto a new machine, run one script, log out and back in.
 
-Built and verified on **Ubuntu 24.04 / GNOME 46 / X11**. Other Debian-family
-distros should work; the scripts detect and degrade rather than guess.
+Built and verified on **Ubuntu 24.04 / GNOME 46 / X11**.
 
 ```bash
 git clone <your-repo-url> ~/alter
@@ -14,6 +13,14 @@ cd ~/alter
 ```
 
 ---
+
+
+
+
+/**** AI SLOP CONTAINMENT ZONE ****/
+
+
+
 
 ## What you get, and why
 
@@ -138,18 +145,18 @@ Every new terminal opens with a [fastfetch](https://github.com/fastfetch-cli/fas
 banner — the machine's facts beside a piece of ASCII art:
 
 ```
-       .,ooa@@@@aoo,.        lkennard@eurydice
-     ,a@@@@@@@@@@@@@@a,      os   Ubuntu 24.04.4 LTS (Noble Numbat) x86_64
-   /#@@@@@@@@@@@@@@@@@@#\    ker  Linux 7.0.0-31-generic
-  /@@@@@@@@@@@@@@@@@@@@@@\   up   43 mins
- /@@@@"''"*@@@@@@*"''"@@@@\  pkg  2429 (dpkg), 16 (snap)
- #@@/      \@@@@/      \@@#  sh   bash 5.2.21
- @@@,,,,,,,,@@@@,,,,,,,,@@@  term ghostty 1.3.1
- #@@@@@@@@@@@@@@@@@@@@@@@@#  wm   Mutter (X11) w/ PaperWM
- \@@@@@@@@@@@@@@@@@@@@@@@@/  cpu  Intel(R) Xeon(R) E5-1650 0 (12) @ 3.80 GHz
-  \@@@@@@@@@@@@@@@@@@@@@@/   gpu  AMD Radeon RX 560 Series [Discrete]
-   \#@@@@@@@@@@@@@@@@@@#/    mem  4.94 GB / 67.38 GB (7%)
-     '*@@@@@@@@@@@@@@*'      disk 29.44 GB / 983.35 GB (3%) - ext4
+       .,ooa@@@@aoo,.        user@computer
+     ,a@@@@@@@@@@@@@@a,      os   <the os>
+    #@@@@@@@@@@@@@@@@@@#     ker  <the ker>
+   @@@@@@@@@@@@@@@@@@@@@@    up   <uptime>
+  @@@@"''"*@@@@@@*"''"@@@@   pkg  <pkgs>
+ #@@/      \@@@@/      \@@#  sh   <the sh>
+ @@@,,,,,,,,@@@@,,,,,,,,@@@  term <the term>
+ #@@@@@@@@@@@@@@@@@@@@@@@@#  wm   <the wm>
+  @@@@@@@@@@@@@@@@@@@@@@@@   cpu  <the cpu>
+   @@@@@@@@@@@@@@@@@@@@@@    gpu  <the gpu>
+    #@@@@@@@@@@@@@@@@@@#     mem  <the mem>
+     '*@@@@@@@@@@@@@@*'      disk <the disk>
        `'""#@@@@#""'`        ● ● ● ● ● ● ● ●
 ```
 
