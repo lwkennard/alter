@@ -574,6 +574,20 @@ Conventions to follow if you extend it (human or agent):
   on stderr, again with exit 0, and it repeats at every prompt. A missing
   config file is silent. `verify.sh` therefore renders one prompt and fails on
   any stderr output at all, never on the exit code. Observed with 1.26.0.
+- **A prompt with no icons is not necessarily a font problem.** starship drew
+  the branch and language segments with no glyph in front of them, which reads
+  as "the Nerd Font is missing or not active". It was neither: `fc-list` had
+  all eight JetBrainsMono Nerd Font faces, `ghostty +show-config` resolved
+  `font-family` to it, and `fc-list ":charset=f418"` proved the glyph was in
+  the font. The cause was `starship.toml` itself — every `symbol = " "` was a
+  bare `0x20`, committed that way (`xxd` on the line: `2220 220a`). Nerd Font
+  glyphs live in Unicode's Private Use Area, render as blanks in most editors,
+  and some write and paste paths drop them, so the file looked correct in
+  every diff. Two traps in checking for it: `grep -oP '[\x{E000}-\x{F8FF}]'`
+  needs a UTF-8 locale, and `sort -u` under `en_US.UTF-8` folds distinct PUA
+  glyphs into one because they have no collation weight (seven became two) —
+  `LC_ALL=C sort -u` keeps them apart. `verify.sh` now fails on a bare symbol
+  and on any glyph the installed font lacks. Look at bytes, not at the screen.
 
 ### Useful commands
 

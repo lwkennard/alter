@@ -14,6 +14,26 @@ done
 hdr "Font"
 fc-list : family 2>/dev/null | grep -F 'JetBrainsMono Nerd Font' >/dev/null \
   && ok "JetBrainsMono Nerd Font present" || { err "Nerd Font MISSING"; fails=$((fails+1)); }
+# The prompt's icons are Nerd Font glyphs from Unicode's Private Use Area
+# (U+E000-F8FF and U+F0000-FFFFD). Editors draw them as blanks and some paste
+# paths drop them outright, so `symbol = " "` -- a bare space -- looks right in
+# a diff and prints nothing at the prompt while the font itself is fine (see
+# README "Gotchas"). Require a glyph on every symbol line, and require the
+# installed font to carry every glyph the file uses -- that second check also
+# catches codepoints Nerd Fonts moved between major releases.
+_st="$ALTER_ROOT/config/starship/starship.toml"
+_bare=$(grep -nE '^symbol = " ?"$' "$_st" | cut -d: -f1 | paste -sd,)
+[ -z "$_bare" ] && ok "starship.toml: every symbol carries a glyph" \
+  || { err "starship.toml: bare symbol, no glyph, on line(s) $_bare"; fails=$((fails+1)); }
+# LC_ALL=C on the sort is load-bearing: under en_US.UTF-8 these glyphs have no
+# collation weight, compare equal, and `sort -u` folds seven of them into two.
+_missing=""
+for _cp in $(LC_ALL=C.UTF-8 grep -oP '[\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}]' "$_st" 2>/dev/null | LC_ALL=C sort -u | tr -d '\n' \
+             | iconv -f UTF-8 -t UTF-32BE | od -An -tx4 -v -w4 --endian=big | tr -d ' ' | sed 's/^0*//'); do
+  fc-list ":charset=$_cp" family 2>/dev/null | grep -qF 'JetBrainsMono Nerd Font' || _missing="$_missing U+${_cp^^}"
+done
+[ -z "$_missing" ] && ok "every glyph starship.toml uses is in JetBrainsMono Nerd Font" \
+  || { err "starship.toml uses glyphs the installed font lacks:$_missing"; fails=$((fails+1)); }
 
 hdr "Configs parse"
 if have ghostty; then

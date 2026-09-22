@@ -6,6 +6,14 @@
 # named in `format` render; the rest of starship's catalogue stays off.
 # Colours are Catppuccin Mocha names from the palette block at the bottom,
 # matching Ghostty, rofi, fzf, bat and delta.
+#
+# Every `symbol` is a Nerd Font glyph (JetBrainsMono Nerd Font, installed by
+# bootstrap/10-fonts.sh). They sit in Unicode's Private Use Area, so an editor
+# without the font shows a blank or a box where the icon is -- that blank is
+# NOT a space. Check a line with `grep -n '^symbol' starship.toml | cat -A`:
+# a real glyph shows as M-… bytes, a lost one as `" "`. verify.sh fails on
+# the latter. Codepoints: git_branch U+F418, python U+E73C, nodejs U+E718,
+# rust U+E7A8, golang U+E627, java U+E738, directory read_only U+F033E.
 
 "$schema" = 'https://starship.rs/config-schema.json'
 add_newline = true
@@ -49,7 +57,7 @@ read_only = " 󰌾"
 read_only_style = "red"
 
 [git_branch]
-symbol = " "
+symbol = " "
 style = "mauve"
 format = "on [$symbol$branch(:$remote_branch)]($style) "
 
@@ -75,27 +83,27 @@ deleted = "✘${count}"
 # Language versions only appear inside a project of that kind, dimmed so they
 # never compete with the path and branch.
 [python]
-symbol = " "
+symbol = " "
 style = "subtext0"
 format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
 
 [nodejs]
-symbol = " "
+symbol = " "
 style = "subtext0"
 format = "[$symbol($version )]($style)"
 
 [rust]
-symbol = " "
+symbol = " "
 style = "subtext0"
 format = "[$symbol($version )]($style)"
 
 [golang]
-symbol = " "
+symbol = " "
 style = "subtext0"
 format = "[$symbol($version )]($style)"
 
 [java]
-symbol = " "
+symbol = " "
 style = "subtext0"
 format = "[$symbol($version )]($style)"
 
