@@ -384,15 +384,16 @@ Conventions to follow if you extend it (human or agent):
   unrecorded problem gets solved again on the next machine. Full rule in
   [`CLAUDE.md`](CLAUDE.md).
 - **Landing a worktree branch?** `bin/merge-latest` merges the worktree branch
-  with the newest commit into `main` and pushes it. Preview with `--dry-run`;
-  name a branch to override the pick; `--ff` fast-forwards instead of making
-  a merge commit; `--clean` removes the worktree and deletes the branch
-  locally and on `origin` afterwards. It refuses to touch anything when either
-  checkout is dirty, when `main` has diverged from `origin`, or when the merge
-  conflicts (the merge is aborted). It never force-pushes.
-- **Working in a worktree?** The `worktree-*` branch stays local. Commit to
-  it, never push it to `origin`; `bin/merge-latest` is how the work reaches
-  `origin/main`. Full rule in [`CLAUDE.md`](CLAUDE.md).
+  with the newest commit into `main`, pushes it, then removes the worktree and
+  deletes the branch locally and on `origin` — the merge commit keeps both the
+  work and the branch name. Preview with `--dry-run`; name a branch to
+  override the pick; `--ff` fast-forwards instead of making a merge commit;
+  `--keep` skips the cleanup. It refuses to touch anything when either checkout
+  is dirty, when `main` has diverged from `origin`, or when the merge conflicts
+  (the merge is aborted). Cleanup only runs after a successful push, uses
+  `git branch -d` (never `-D`), and is skipped with a note when the worktree
+  is locked by a live session or `origin`'s copy of the branch has commits the
+  local one lacks. It never force-pushes.
 
 ### Gotchas found the hard way
 
