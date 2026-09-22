@@ -4,11 +4,16 @@
 #   bin/merge-latest BRANCH       merge that branch instead of picking one
 #   bin/merge-latest --dry-run    print every step, change nothing (still fetches)
 #   bin/merge-latest --ff         fast-forward when possible instead of a merge commit
-#   bin/merge-latest --no-push    merge only, leave the push to you
-#   bin/merge-latest --clean      afterwards remove the worktree, delete the branch
-#                                 locally and on origin
+#   bin/merge-latest --no-push    merge only, leave the push (and so the cleanup) to you
+#   bin/merge-latest --keep       keep the worktree and branch after landing
 #   bin/merge-latest --into X     target branch (default: origin's HEAD, else main)
 #
+# After main is pushed, the landed worktree is removed and its branch deleted
+# locally and on origin: the merge commit keeps the work and the branch name.
+# Cleanup is skipped, with a note, whenever it would not be safe: main was not
+# pushed, the worktree is locked by a live session, git says the branch is not
+# fully merged (`branch -d`, never -D), or origin's copy of the branch has
+# commits the local one lacks.
 # Refuses, changing nothing, when: the main checkout is not on the target
 # branch or has uncommitted changes; the worktree has uncommitted changes;
 # the target has diverged from origin; the merge conflicts (it is aborted).
@@ -17,16 +22,16 @@
 set -u
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bootstrap/lib.sh"
 
-usage() { sed -n '2,10p' "$0" | sed 's/^# \?//'; }
+usage() { sed -n '2,9p' "$0" | sed 's/^# \?//'; }
 
-want=""; into=""; ff=0; push=1; clean=0; fetch=1
+want=""; into=""; ff=0; push=1; keep=0; fetch=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run|-n) export DRY_RUN=1 ;;
     --ff)         ff=1 ;;
     --no-push)    push=0 ;;
     --no-fetch)   fetch=0 ;;
-    --clean)      clean=1 ;;
+    --keep)       keep=1 ;;
     --into)       shift; into="${1:-}" ;;
     --help|-h)    usage; exit 0 ;;
     -*)           err "unknown option: $1"; usage >&2; exit 2 ;;
@@ -84,7 +89,7 @@ if [ -n "$remote" ] && g rev-parse --verify --quiet "$remote/$into" >/dev/null; 
 fi
 
 # ---- choose the branch: newest commit among unmerged worktree branches ------
-declare -A wt_of=()
+declare -A wt_of=() locked=()
 path=""
 while IFS= read -r line; do
   case "$line" in
@@ -92,6 +97,7 @@ while IFS= read -r line; do
     "branch refs/heads/"*)
       b="${line#branch refs/heads/}"
       [ "$path" = "$main_wt" ] || wt_of["$b"]="$path" ;;
+    locked*) locked["$path"]="${line#locked}" ;;
   esac
 done < <(g worktree list --porcelain)
 
@@ -118,7 +124,7 @@ wt="${wt_of[$branch]:-}"
 
 if g merge-base --is-ancestor "$branch" "$into"; then
   ok "$branch is already contained in $into"
-  [ "$clean" = 1 ] || exit 0
+  [ "$keep" = 1 ] && exit 0
 fi
 
 # ---- the worktree must be clean too -----------------------------------------
@@ -139,6 +145,9 @@ fi
 # ---- merge ------------------------------------------------------------------
 if [ "$n" -gt 0 ]; then
   if [ "$ff" = 1 ]; then mode=(--ff); else mode=(--no-ff); fi
+  if [ "$ff" = 1 ] && [ "$keep" = 0 ] && g merge-base --is-ancestor "$into" "$branch"; then
+    warn "fast-forwarding, then deleting $branch: its name will not appear in history (use --keep or drop --ff)"
+  fi
   if run git -C "$main_wt" merge "${mode[@]}" --no-edit --quiet "$branch"; then
     ok "merged $branch into $into"
   else
@@ -157,16 +166,30 @@ else
   skip "push (--no-push)"
 fi
 
-# ---- optional cleanup -------------------------------------------------------
-if [ "$clean" = 1 ]; then
-  if [ -n "$wt" ] && [ -d "$wt" ]; then
-    if run git -C "$main_wt" worktree remove "$wt"; then ok "removed worktree $wt"
-    else warn "could not remove $wt (locked by a live session?); left in place, branch kept"; exit 0; fi
-  fi
-  run git -C "$main_wt" branch -d --quiet "$branch" && ok "deleted branch $branch"
-  if [ -n "$remote" ] && g ls-remote --exit-code --heads "$remote" "$branch" >/dev/null 2>&1; then
-    run git -C "$main_wt" push --quiet "$remote" --delete "$branch" && ok "deleted $remote/$branch"
-  fi
+# ---- cleanup: only once the work is safely on the remote --------------------
+# Order matters: worktree first (git will not delete a checked-out branch),
+# then the local branch with -d (refuses unless merged), then the remote copy.
+if [ "$keep" = 1 ]; then
+  skip "cleanup (--keep); later: bin/merge-latest $branch"
+elif [ "$push" = 0 ]; then
+  skip "cleanup: $into was not pushed, so $remote/$branch is still the off-machine copy; rerun after pushing"
 else
-  say "  to tidy up: bin/merge-latest $branch --clean"
+  if [ -n "$wt" ] && [ -d "$wt" ]; then
+    if [ -n "${locked[$wt]+x}" ]; then
+      warn "worktree $wt is locked (${locked[$wt]# }); leaving it and $branch in place"
+      say "  when the session is gone: git worktree unlock '$wt' && bin/merge-latest $branch"
+      exit 0
+    fi
+    if run git -C "$main_wt" worktree remove "$wt"; then ok "removed worktree $wt"
+    else warn "could not remove $wt; leaving it and $branch in place"; exit 0; fi
+  fi
+  if run git -C "$main_wt" branch -d --quiet "$branch"; then ok "deleted branch $branch"
+  else warn "git would not delete $branch as fully merged; kept, and $remote/$branch kept with it"; exit 0; fi
+  if [ -n "$remote" ] && g rev-parse --verify --quiet "$remote/$branch" >/dev/null; then
+    if g merge-base --is-ancestor "$remote/$branch" "$into"; then
+      run git -C "$main_wt" push --quiet "$remote" --delete "$branch" && ok "deleted $remote/$branch"
+    else
+      warn "$remote/$branch has commits not in $into (pushed from elsewhere?); left in place"
+    fi
+  fi
 fi
