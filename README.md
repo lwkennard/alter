@@ -329,6 +329,7 @@ alter/
 │   └── git/gitconfig.include  delta pager and colour settings
 ├── bin/zenity-askpass      GUI sudo prompt for non-TTY contexts
 ├── bin/img2logo            image -> ASCII/block logo art (needs python3-pil)
+├── bin/merge-latest        land the newest worktree branch on main and push it
 ├── docs/
 │   ├── hotkeys.txt         one-screen hotkey reference (`keys`); shape enforced by verify.sh
 │   └── TODO.md             outstanding work, acceptance criteria, loose ends
@@ -369,6 +370,13 @@ Conventions to follow if you extend it (human or agent):
   "Gotchas" below or `docs/TODO.md`. A hand-made change survives nothing; an
   unrecorded problem gets solved again on the next machine. Full rule in
   [`CLAUDE.md`](CLAUDE.md).
+- **Landing a worktree branch?** `bin/merge-latest` merges the worktree branch
+  with the newest commit into `main` and pushes it. Preview with `--dry-run`;
+  name a branch to override the pick; `--ff` fast-forwards instead of making
+  a merge commit; `--clean` removes the worktree and deletes the branch
+  locally and on `origin` afterwards. It refuses to touch anything when either
+  checkout is dirty, when `main` has diverged from `origin`, or when the merge
+  conflicts (the merge is aborted). It never force-pushes.
 
 ### Gotchas found the hard way
 

@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# merge-latest -- land the newest worktree branch on main and push it.
+#   bin/merge-latest              merge the worktree branch with the newest commit
+#   bin/merge-latest BRANCH       merge that branch instead of picking one
+#   bin/merge-latest --dry-run    print every step, change nothing (still fetches)
+#   bin/merge-latest --ff         fast-forward when possible instead of a merge commit
+#   bin/merge-latest --no-push    merge only, leave the push to you
+#   bin/merge-latest --clean      afterwards remove the worktree, delete the branch
+#                                 locally and on origin
+#   bin/merge-latest --into X     target branch (default: origin's HEAD, else main)
+#
+# Refuses, changing nothing, when: the main checkout is not on the target
+# branch or has uncommitted changes; the worktree has uncommitted changes;
+# the target has diverged from origin; the merge conflicts (it is aborted).
+# A worktree branch that is already contained in the target is never picked.
+# Every side effect goes through `run`, so --dry-run is a faithful preview.
+set -u
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bootstrap/lib.sh"
+
+usage() { sed -n '2,10p' "$0" | sed 's/^# \?//'; }
+
+want=""; into=""; ff=0; push=1; clean=0; fetch=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dry-run|-n) export DRY_RUN=1 ;;
+    --ff)         ff=1 ;;
+    --no-push)    push=0 ;;
+    --no-fetch)   fetch=0 ;;
+    --clean)      clean=1 ;;
+    --into)       shift; into="${1:-}" ;;
+    --help|-h)    usage; exit 0 ;;
+    -*)           err "unknown option: $1"; usage >&2; exit 2 ;;
+    *)            [ -z "$want" ] && want="$1" || { err "one branch at most"; exit 2; } ;;
+  esac
+  shift
+done
+
+# ---- locate the main checkout (first entry of `git worktree list`) ----------
+have git || { err "git not found"; exit 1; }
+git rev-parse --git-dir >/dev/null 2>&1 || { err "not inside a git repository"; exit 1; }
+main_wt="$(git worktree list --porcelain | sed -n '1s/^worktree //p')"
+[ -d "$main_wt" ] || { err "cannot find the main checkout"; exit 1; }
+g() { git -C "$main_wt" "$@"; }
+
+remote="$(g remote 2>/dev/null | head -1)"
+if [ -z "$into" ]; then
+  into="$(g symbolic-ref --short "refs/remotes/${remote:-origin}/HEAD" 2>/dev/null | sed 's#^[^/]*/##')"
+  into="${into:-main}"
+fi
+
+hdr "merge-latest -> $into"
+[ "${DRY_RUN:-0}" = 1 ] && warn "DRY RUN -- nothing will be modified"
+say "  checkout   $main_wt"
+
+# ---- the main checkout must be on the target, and clean ---------------------
+cur="$(g symbolic-ref --short HEAD 2>/dev/null || echo DETACHED)"
+if [ "$cur" != "$into" ]; then
+  err "$main_wt is on '$cur', not '$into'; check out $into there first"; exit 1
+fi
+if [ -n "$(g status --porcelain --untracked-files=no)" ]; then
+  err "$main_wt has uncommitted changes; commit or discard them first"
+  g status --short --untracked-files=no | sed 's/^/    /'; exit 1
+fi
+ok "$into checked out and clean"
+
+# ---- sync with origin: fast-forward if behind, refuse if diverged -----------
+if [ -z "$remote" ]; then
+  warn "no remote configured; nothing will be pushed"; push=0
+elif [ "$fetch" = 1 ]; then
+  say "  fetching $remote (updates remote-tracking refs only)"
+  g fetch --quiet --prune "$remote" || { err "fetch from $remote failed"; exit 1; }
+fi
+if [ -n "$remote" ] && g rev-parse --verify --quiet "$remote/$into" >/dev/null; then
+  if g merge-base --is-ancestor "$remote/$into" "$into"; then
+    ahead="$(g rev-list --count "$remote/$into..$into")"
+    if [ "$ahead" -gt 0 ]; then skip "$into is $ahead commit(s) ahead of $remote/$into; the push will carry them"
+    else skip "$into is up to date with $remote/$into"; fi
+  elif g merge-base --is-ancestor "$into" "$remote/$into"; then
+    run git -C "$main_wt" merge --ff-only --quiet "$remote/$into" || { err "fast-forward failed"; exit 1; }
+    ok "$into fast-forwarded to $remote/$into"
+  else
+    err "$into and $remote/$into have diverged; reconcile them by hand first"; exit 1
+  fi
+fi
+
+# ---- choose the branch: newest commit among unmerged worktree branches ------
+declare -A wt_of=()
+path=""
+while IFS= read -r line; do
+  case "$line" in
+    "worktree "*) path="${line#worktree }" ;;
+    "branch refs/heads/"*)
+      b="${line#branch refs/heads/}"
+      [ "$path" = "$main_wt" ] || wt_of["$b"]="$path" ;;
+  esac
+done < <(g worktree list --porcelain)
+
+if [ -n "$want" ]; then
+  g rev-parse --verify --quiet "refs/heads/$want" >/dev/null || { err "no local branch '$want'"; exit 1; }
+  branch="$want"
+else
+  branch=""; best=0
+  for b in "${!wt_of[@]}"; do
+    [ "$b" = "$into" ] && continue
+    if g merge-base --is-ancestor "$b" "$into"; then
+      skip "$b (already in $into)"; continue
+    fi
+    t="$(g log -1 --format=%ct "$b")"
+    [ "$t" -gt "$best" ] && { best="$t"; branch="$b"; }
+  done
+  if [ -z "$branch" ]; then
+    [ ${#wt_of[@]} -eq 0 ] && say "  no worktrees besides the main checkout"
+    ok "nothing to merge"; exit 0
+  fi
+fi
+[ "$branch" = "$into" ] && { err "'$branch' is the target"; exit 1; }
+wt="${wt_of[$branch]:-}"
+
+if g merge-base --is-ancestor "$branch" "$into"; then
+  ok "$branch is already contained in $into"
+  [ "$clean" = 1 ] || exit 0
+fi
+
+# ---- the worktree must be clean too -----------------------------------------
+if [ -n "$wt" ] && [ -d "$wt" ]; then
+  if [ -n "$(git -C "$wt" status --porcelain --untracked-files=no)" ]; then
+    err "$wt has uncommitted changes on $branch; commit them first"
+    git -C "$wt" status --short --untracked-files=no | sed 's/^/    /'; exit 1
+  fi
+fi
+
+say "  branch     $branch${wt:+  (worktree $wt)}"
+n="$(g rev-list --count "$into..$branch")"
+if [ "$n" -gt 0 ]; then
+  say "  landing    $n commit(s):"
+  g log --oneline --no-decorate "$into..$branch" | sed 's/^/    /'
+fi
+
+# ---- merge ------------------------------------------------------------------
+if [ "$n" -gt 0 ]; then
+  if [ "$ff" = 1 ]; then mode=(--ff); else mode=(--no-ff); fi
+  if run git -C "$main_wt" merge "${mode[@]}" --no-edit --quiet "$branch"; then
+    ok "merged $branch into $into"
+  else
+    err "merge of $branch conflicted; aborting so $into stays clean"
+    g diff --name-only --diff-filter=U | sed 's/^/    /'
+    g merge --abort 2>/dev/null
+    exit 1
+  fi
+fi
+
+# ---- push -------------------------------------------------------------------
+if [ "$push" = 1 ]; then
+  if run git -C "$main_wt" push --quiet "$remote" "$into"; then ok "pushed $into to $remote"
+  else err "push to $remote failed; $into is merged locally, push it by hand"; exit 1; fi
+else
+  skip "push (--no-push)"
+fi
+
+# ---- optional cleanup -------------------------------------------------------
+if [ "$clean" = 1 ]; then
+  if [ -n "$wt" ] && [ -d "$wt" ]; then
+    if run git -C "$main_wt" worktree remove "$wt"; then ok "removed worktree $wt"
+    else warn "could not remove $wt (locked by a live session?); left in place, branch kept"; exit 0; fi
+  fi
+  run git -C "$main_wt" branch -d --quiet "$branch" && ok "deleted branch $branch"
+  if [ -n "$remote" ] && g ls-remote --exit-code --heads "$remote" "$branch" >/dev/null 2>&1; then
+    run git -C "$main_wt" push --quiet "$remote" --delete "$branch" && ok "deleted $remote/$branch"
+  fi
+else
+  say "  to tidy up: bin/merge-latest $branch --clean"
+fi
