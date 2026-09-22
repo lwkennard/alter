@@ -1,0 +1,60 @@
+* {
+    bg:        #1e1e2eF2;
+    bg-alt:    #313244FF;
+    fg:        #cdd6f4FF;
+    fg-dim:    #a6adc8FF;
+    accent:    #cba6f7FF;
+    urgent:    #f38ba8FF;
+    border-c:  #6c7086FF;
+
+    background-color: transparent;
+    text-color:       @fg;
+    spacing:          0;
+}
+
+window {
+    transparency:     "real";
+    background-color: @bg;
+    border:           2px;
+    border-color:     @border-c;
+    border-radius:    12px;
+    width:            46%;
+    padding:          0;
+}
+
+mainbox { children: [ inputbar, listview ]; padding: 10px; }
+
+inputbar {
+    background-color: @bg-alt;
+    border-radius:    8px;
+    padding:          10px 14px;
+    spacing:          10px;
+    children:         [ prompt, entry ];
+    margin:           0 0 10px 0;
+}
+
+prompt { text-color: @accent; }
+entry  { placeholder: "search windows…"; placeholder-color: @fg-dim; cursor: text; }
+
+listview {
+    lines:         12;
+    columns:       1;
+    scrollbar:     false;
+    fixed-height:  false;
+    dynamic:       true;
+    spacing:       2px;
+}
+
+element { padding: 9px 12px; border-radius: 8px; spacing: 12px; }
+element normal normal   { text-color: @fg; }
+element alternate normal{ text-color: @fg; }
+element selected normal { background-color: @accent; text-color: #11111bFF; }
+element urgent          { text-color: @urgent; }
+
+element-icon { size: 1.25em; vertical-align: 0.5; }
+/* rofi 1.7.5: `highlight` takes a LITERAL colour -- an @reference here is a
+   parse error ("unexpected Reference") that silently drops the whole theme,
+   and rofi only says so in the overlay. Keep these two in sync with @accent
+   (#cba6f7FF) and the selected text-color (#11111bFF) by hand. */
+element-text { vertical-align: 0.5; highlight: bold #cba6f7FF; }
+element selected normal element-text { highlight: bold #11111bFF; }

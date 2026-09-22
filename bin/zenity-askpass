@@ -1,0 +1,4 @@
+#!/bin/sh
+# Minimal SUDO_ASKPASS helper. sudo reads the password from this script's
+# stdout directly; it is never echoed, logged, or stored.
+exec zenity --password --title="sudo: password for $USER" --width=320 2>/dev/null

@@ -1,0 +1,41 @@
+# Included from ~/.gitconfig by alter. Contains no identity -- set
+# user.name / user.email yourself, globally or per-repo.
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	features = catppuccin-mocha
+	navigate = true
+	line-numbers = true
+	side-by-side = false
+	hyperlinks = true
+[merge]
+	conflictstyle = zdiff3
+[diff]
+	colorMoved = default
+
+# Catppuccin Mocha for delta -- from catppuccin/delta.
+# syntax-theme must match a theme bat knows about; `10-fonts.sh` installs the
+# matching .tmTheme into ~/.config/bat/themes and runs `bat cache --build`.
+[delta "catppuccin-mocha"]
+	blame-palette = "#1e1e2e #181825 #11111b #313244 #45475a"
+	commit-decoration-style = "#6c7086" bold box ul
+	dark = true
+	file-decoration-style = "#6c7086"
+	file-style = "#cdd6f4"
+	hunk-header-decoration-style = "#6c7086" box ul
+	hunk-header-file-style = bold
+	hunk-header-line-number-style = bold "#a6adc8"
+	hunk-header-style = file line-number syntax
+	line-numbers-left-style = "#6c7086"
+	line-numbers-minus-style = bold "#f38ba8"
+	line-numbers-plus-style = bold "#a6e3a1"
+	line-numbers-right-style = "#6c7086"
+	line-numbers-zero-style = "#6c7086"
+	minus-emph-style = bold syntax "#694559"
+	minus-style = syntax "#493447"
+	plus-emph-style = bold syntax "#4e6356"
+	plus-style = syntax "#394545"
+	map-styles = bold purple => syntax "#5b4e74", bold blue => syntax "#445375", bold cyan => syntax "#446170", bold yellow => syntax "#6b635b"
+	syntax-theme = Catppuccin Mocha

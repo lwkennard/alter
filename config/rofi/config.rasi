@@ -1,0 +1,28 @@
+configuration {
+    modes:   "window,drun,run";
+    font:    "JetBrainsMono Nerd Font 12";
+
+    /* Window switcher: show the app, the workspace it lives on, and the title */
+    window-format: "{w}  {c}   {t}";
+    show-icons:    true;
+    icon-theme:    "Yaru";
+
+    /* Match GNOME's habit: Enter selects, Esc cancels, typing filters.
+       Alt+Tab-style cycling also works while the menu is open. */
+    kb-cancel:        "Escape,MouseSecondary";
+    kb-accept-entry:  "Return,KP_Enter";
+    kb-row-down:      "Down,Control+n,Alt+Tab";
+    kb-row-up:        "Up,Control+p,Alt+ISO_Left_Tab";
+    /* Clear rofi's defaults that would otherwise steal the keys above */
+    kb-accept-custom: "Control+Return";
+    kb-remove-to-eol: "";
+    kb-element-next:  "";
+    kb-element-prev:  "";
+
+    drun-display-format: "{name}";
+    sort:                true;
+    sorting-method:      "fzf";
+    matching:            "fuzzy";
+}
+
+@theme "themes/catppuccin-mocha"

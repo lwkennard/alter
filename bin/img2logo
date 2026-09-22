@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""img2logo -- turn a flat-colour image into a fastfetch logo file.
+
+    bin/img2logo ~/Pictures/vrgl-happy.png --rows 13 > config/fastfetch/logo.txt
+
+Written for flat icons (a handful of solid colours), which is what reads at
+banner size; a photograph will come out as mud. It:
+
+  * quantises every pixel to the --colors most common colours in the file;
+  * treats whatever touches the border as transparent -- flood filled, so a
+    dark plate AND the white page behind its rounded corners both drop out
+    while a white ring inside the picture survives;
+  * crops to what is left and majority-votes each output cell. Resizing the
+    RGB first would blend a white ring into a dark plate, and the grey that
+    comes out is nearer the green face than either parent: green sprays
+    outside the ring. Classify first, downsample second.
+  * folds two pixel rows into one character row with half blocks, so a row of
+    text is a square pixel, and emits $1..$9 colour tokens.
+
+The colour legend goes to stderr: paste it into "logo": { "color": ... } in
+config/fastfetch/config.jsonc. Needs python3-pil.
+"""
+import argparse, sys
+from collections import Counter, deque
+
+try:
+    from PIL import Image
+except ImportError:
+    sys.exit("img2logo: needs python3-pil  (sudo apt install python3-pil)")
+
+ap = argparse.ArgumentParser()
+ap.add_argument("image")
+ap.add_argument("--rows", type=int, default=13, help="character rows (default 13)")
+ap.add_argument("--cols", type=int, default=0, help="columns (default: 2*rows, i.e. square)")
+ap.add_argument("--colors", type=int, default=3, help="colours to quantise to (default 3)")
+ap.add_argument("--no-mirror", action="store_true", help="do not force left/right symmetry")
+ap.add_argument("--ink", type=float, default=0.40,
+                help="blocks: cell is drawn when this share of it is non-background (default 0.40)")
+ap.add_argument("--style", choices=("blocks", "ascii"), default="blocks",
+                help="blocks: half-block glyphs, one colour token per cell. "
+                     "ascii: fill ONE colour with a density ramp of ordinary "
+                     "characters and leave everything else as terminal "
+                     "background (default blocks)")
+ap.add_argument("--fill", type=int, default=0,
+                help="ascii: which colour to draw, as a rank in the palette "
+                     "(0 = the most common colour that is not background)")
+ap.add_argument("--ramp", default=" .:-=+*oa#@",
+                help="ascii: characters from empty to solid")
+a = ap.parse_args()
+
+im = Image.open(a.image).convert("RGB")
+w, h = im.size
+px = im.load()
+W, H = (a.cols or a.rows * 2), a.rows * 2
+
+counts = Counter(im.getdata())
+pal = [c for c, _ in counts.most_common(a.colors)]
+rank = {i: n for i, (_, n) in enumerate(counts.most_common(a.colors))}
+def cls(p):
+    return min(range(len(pal)), key=lambda i: sum((x - y) ** 2 for x, y in zip(p, pal[i])))
+grid0 = [[cls(px[x, y]) for x in range(w)] for y in range(h)]
+
+# Everything reachable from the border, through pixels of its own colour, is
+# background -- however many colours that turns out to be.
+bg = [[False] * w for _ in range(h)]
+q = deque()
+for x in range(w):
+    for y in (0, h - 1):
+        if not bg[y][x]: bg[y][x] = True; q.append((x, y))
+for y in range(h):
+    for x in (0, w - 1):
+        if not bg[y][x]: bg[y][x] = True; q.append((x, y))
+while q:
+    x, y = q.popleft()
+    for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+        if 0 <= nx < w and 0 <= ny < h and not bg[ny][nx] and grid0[ny][nx] == grid0[y][x]:
+            bg[ny][nx] = True; q.append((nx, ny))
+
+if a.style == "ascii":
+    # Only one colour gets drawn, so the picture IS that colour: crop to it,
+    # not to the whole subject. Otherwise a white ring that renders as nothing
+    # still reserves a margin, and the art shrinks away from its own box.
+    order = [i for i, _ in sorted(rank.items(), key=lambda kv: -kv[1])]
+    fg = [i for i in order if any(
+        not bg[y][x] and grid0[y][x] == i for y in range(0, h, 4) for x in range(0, w, 4))]
+    if not fg: sys.exit("img2logo: no drawable colour found")
+    ink_cls = fg[min(a.fill, len(fg) - 1)]
+    for y in range(h):
+        for x in range(w):
+            if grid0[y][x] != ink_cls: bg[y][x] = True
+
+# Crop to the largest connected blob of non-background, not to every stray
+# pixel: anti-aliasing along a rounded corner leaves specks that are not
+# border-connected, and one of them in a corner drags the crop out to the full
+# image and shrinks the subject to nothing.
+seen = [[False] * w for _ in range(h)]
+best = None
+for sy0 in range(h):
+    for sx0 in range(w):
+        if bg[sy0][sx0] or seen[sy0][sx0]: continue
+        comp, q = [], deque([(sx0, sy0)])
+        seen[sy0][sx0] = True
+        while q:
+            x, y = q.popleft(); comp.append((x, y))
+            for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+                if 0 <= nx < w and 0 <= ny < h and not bg[ny][nx] and not seen[ny][nx]:
+                    seen[ny][nx] = True; q.append((nx, ny))
+        if best is None or len(comp) > len(best): best = comp
+if not best: sys.exit("img2logo: the whole image is border-connected; nothing to draw")
+mask = [[False] * w for _ in range(h)]
+for x, y in best: mask[y][x] = True
+
+# Trim edge rows and columns that are almost empty. A shape's own edge row is
+# thin but not one pixel thin; what is, is the anti-aliased fringe, and leaving
+# it in the box shifts and squashes the subject by a pixel in each direction --
+# enough, at 13 rows, to flatten the bottom of a circle and swallow an eye.
+def trim(counts):
+    lim = max(1, int(0.02 * max(counts)))
+    lo, hi = 0, len(counts)
+    while lo < hi and counts[lo] < lim: lo += 1
+    while hi > lo and counts[hi-1] < lim: hi -= 1
+    return lo, hi
+x0, x1 = trim([sum(mask[y][x] for y in range(h)) for x in range(w)])
+y0, y1 = trim([sum(mask[y][x] for x in range(w)) for y in range(h)])
+
+sx, sy = (x1 - x0) / W, (y1 - y0) / H
+grid = []
+for gy in range(H):
+    line = []
+    for gx in range(W):
+        c = Counter()
+        for yy in range(int(y0 + gy*sy), max(int(y0 + (gy+1)*sy), int(y0 + gy*sy) + 1)):
+            for xx in range(int(x0 + gx*sx), max(int(x0 + (gx+1)*sx), int(x0 + gx*sx) + 1)):
+                c[None if bg[yy][xx] else grid0[yy][xx]] += 1
+        # Not a plain majority: a stroke one cell thick -- the bottom of a
+        # ring, say -- covers well under half of the cells it passes through
+        # and would vote itself out of existence, leaving a gap in the outline.
+        total = sum(c.values())
+        ink = {k: v for k, v in c.items() if k is not None}
+        if ink and sum(ink.values()) >= a.ink * total:
+            line.append(max(ink, key=ink.get))
+        else:
+            line.append(None)
+    grid.append(line)
+if not a.no_mirror:                       # icons are symmetric; a crop can be a pixel off
+    for line in grid:
+        for x in range(W // 2):
+            line[W - 1 - x] = line[x]
+
+if a.style == "ascii":
+    LOW  = " ..,,ooa#"      # ink pooled in the bottom of the cell
+    HIGH = " ``\'\'\"\"*#"      # ink riding the top of it
+    MIRROR = str.maketrans("()/\\", ")(\\/")
+
+    cells = []
+    for cy in range(a.rows):
+        line = []
+        for cx in range(W):
+            ya, yb = int(y0 + cy*sy*2), int(y0 + (cy+1)*sy*2)
+            xa, xb = int(x0 + cx*sx),   int(x0 + (cx+1)*sx)
+            yb, xb = max(yb, ya+1), max(xb, xa+1)
+            q = [0, 0, 0, 0]; qn = [0, 0, 0, 0]          # TL TR BL BR
+            ymid, xmid = (ya + yb) // 2, (xa + xb) // 2
+            for yy in range(ya, yb):
+                for xx in range(xa, xb):
+                    i = (0 if yy < ymid else 2) + (0 if xx < xmid else 1)
+                    qn[i] += 1; q[i] += 0 if bg[yy][xx] else 1
+            n, t = sum(qn), sum(q)
+            f = t / n
+            def sh(i, j):
+                m = qn[i] + qn[j]
+                return (q[i] + q[j]) / m if m else f
+            line.append((f, sh(0,1) - sh(2,3), sh(0,2) - sh(1,3)))   # f, dy, dx
+        cells.append(line)
+
+    def glyph(f, dy, dx):
+        # Where the ink sits in the cell matters as much as how much there is.
+        # A curve's upper edge pools ink at the bottom of its cells and wants
+        # characters that hang low; its lower edge wants ones that ride high;
+        # its sides want a bracket and its shoulders a slash. Density alone
+        # turns a circle into a staircase.
+        if f >= 0.92: return a.ramp[-1]
+        if f < 0.06:  return " "
+        if 0.15 < f < 0.85:
+            if abs(dx) > 0.35 and abs(dx) > 2 * abs(dy): return ")" if dx > 0 else "("
+            if abs(dx) > 0.30 and abs(dy) > 0.30:
+                return "/" if (dx > 0) == (dy > 0) else "\\"
+        if abs(dy) > 0.25 and abs(dy) > abs(dx):
+            ramp = LOW if dy < 0 else HIGH
+            return ramp[min(len(ramp)-1, int(f*len(ramp)))]
+        return a.ramp[min(len(a.ramp)-1, int(f*len(a.ramp)))]
+
+    out = []
+    for line in cells:
+        row = [glyph(*c) for c in line]
+        if not a.no_mirror:                    # the subject is symmetric; the crop may not be
+            for x in range(W // 2):
+                row[W-1-x] = row[x].translate(MIRROR)
+        txt = "".join(row).rstrip()
+        out.append("$1" + txt if txt else "")
+    sys.stdout.write("\n".join(out))
+    sys.stdout.write("\n" if sys.stdout.isatty() else "")
+    print("logo: %d rows x %d cols (ascii)" % (len(out), W), file=sys.stderr)
+    r, g, b = pal[ink_cls]
+    print('  "1": "38;2;%d;%d;%d",' % (r, g, b), file=sys.stderr)
+    sys.exit(0)
+
+used, out = {}, []
+def tok(i):
+    used.setdefault(i, len(used) + 1)
+    return "$%d" % used[i]
+for cr in range(H // 2):
+    line, cur = "", None
+    for x in range(W):
+        t, b = grid[cr*2][x], grid[cr*2+1][x]
+        if t is None and b is None: line += " "; continue
+        if t == b:        ch, c = "█", t
+        elif b is None:   ch, c = "▀", t
+        elif t is None:   ch, c = "▄", b
+        else:
+            # Two colours in one cell and only one can be drawn. Keep the rarer
+            # one: the scarce colour in a flat icon is its outline and its
+            # details -- a ring, an eye -- and those are what vanish first.
+            ch, c = "█", (t if rank[t] < rank[b] else b)
+        s = tok(c)
+        if s != cur: line += s; cur = s
+        line += ch
+    out.append(line.rstrip())
+sys.stdout.write("\n".join(out))                  # no trailing newline: it would
+sys.stdout.write("\n" if sys.stdout.isatty() else "")   # render as one blank row
+
+print("logo: %d rows x %d cols" % (len(out), W), file=sys.stderr)
+for idx, n in sorted(used.items(), key=lambda kv: kv[1]):
+    r, g, b = pal[idx]
+    print('  "%d": "38;2;%d;%d;%d",' % (n, r, g, b), file=sys.stderr)

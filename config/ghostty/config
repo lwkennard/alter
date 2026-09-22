@@ -1,0 +1,70 @@
+# ~/.config/ghostty/config
+#
+# Ghostty's stock Linux keymap is already GNOME Terminal's: Ctrl+Shift+T/N/W/Q,
+# Ctrl+Shift+C/V, Ctrl+PgUp/PgDn, Alt+1..9, Ctrl+0/-/=. So this file overrides
+# almost nothing -- it only fills genuine gaps and sets appearance.
+
+# ---------------- appearance ----------------
+theme = Catppuccin Mocha
+font-family = JetBrainsMono Nerd Font
+font-size = 12
+font-thicken = true
+
+window-padding-x = 10
+window-padding-y = 8
+window-padding-balance = true
+gtk-tabs-location = top
+gtk-wide-tabs = false
+
+background-opacity = 0.97
+unfocused-split-opacity = 0.85
+cursor-style = block
+cursor-style-blink = false
+mouse-hide-while-typing = true
+
+# ---------------- behaviour ----------------
+window-save-state = always
+
+# 'sudo' keeps Ghostty's terminfo working under sudo (no more "unknown terminal
+# type xterm-ghostty" from sudo vim). 'ssh-env' sends TERM=xterm-256color when
+# you SSH, so the build servers behave -- and unlike ssh-terminfo it writes
+# nothing to the remote host.
+shell-integration-features = cursor,sudo,title,ssh-env,path
+
+# ---------------- keybindings ----------------
+# GNOME Terminal reorders tabs with Ctrl+Shift+PgUp/PgDn; Ghostty ships no binding.
+keybind = ctrl+shift+page_down=move_tab:1
+keybind = ctrl+shift+page_up=move_tab:-1
+
+# Splits: creating them (Ctrl+Shift+O = right, Ctrl+Shift+E = down) and zooming
+# one (Ctrl+Shift+Enter) are Ghostty defaults and stay as shipped.
+#
+# Navigating between them is moved off Ghostty's default Ctrl+Alt+arrows.
+# Ctrl+Alt+Left/Right is GNOME's stock workspace switch, so that default only
+# works if the desktop is made to give the key up -- and it is not worth taking.
+# Nothing on the desktop claims Ctrl+Shift+arrows -- checked across the wm,
+# shell and mutter schemas.
+#
+# It is NOT free inside the terminal, though. Unbound, Ctrl+Shift+arrow sends
+# CSI 1;6 (\e[1;6A..D) to the program, exactly as Ctrl+Alt+arrow sends 1;7.
+# Binding it here means Ghostty swallows it and the program never sees it, so a
+# TUI that wants Ctrl+Shift+arrows loses it. Nothing in this setup does.
+#
+# Symptom if this file is edited but a running Ghostty has not reloaded it:
+# Ctrl+Shift+arrow prints a bare A/B/C/D on the prompt -- that is the tail of
+# the passed-through escape sequence. Reload with Ctrl+Shift+, or restart.
+#
+# The cost is that Ctrl+Shift+Left/Right were Ghostty's aliases for previous/
+# next tab. Ctrl+PgUp/PgDn (stock, and the primary binding this repo documents)
+# and Alt+1..9 both still switch tabs, so no capability is lost.
+keybind = ctrl+shift+arrow_left=goto_split:left
+keybind = ctrl+shift+arrow_right=goto_split:right
+keybind = ctrl+shift+arrow_up=goto_split:up
+keybind = ctrl+shift+arrow_down=goto_split:down
+
+# Hand Ctrl+Alt+arrows back to the desktop (bootstrap/20-gnome.sh no longer
+# strips it out of GNOME's workspace-switch bindings).
+keybind = ctrl+alt+arrow_left=unbind
+keybind = ctrl+alt+arrow_right=unbind
+keybind = ctrl+alt+arrow_up=unbind
+keybind = ctrl+alt+arrow_down=unbind

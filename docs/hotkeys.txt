@@ -1,0 +1,69 @@
+
+
+ HOTKEYS            [stock] = came with GNOME       keys [pattern] · README.md
+
+ DESKTOP
+   Super+Space            rofi: fuzzy-search windows, all workspaces
+   Super+1 .. 4           workspace 1-4, fixed
+   Super+Shift+1 .. 4     move window to workspace 1-4
+   Super+Shift+Left/Right move window to prev/next workspace (was monitor)
+   Super+V                clipboard history, last 50 copies
+   Ctrl+Super+1 .. 9      dock favourite 1-9
+   Ctrl+Alt+T             new terminal
+   Super · Super+A        overview / app grid                       [stock]
+   Alt+F4 · Super+H       close / minimise window                   [stock]
+
+ WINDOWS -- PAPERWM
+   Super+Left/Right       focus window left / right along the strip
+   Super+Up/Down          focus within a column
+   Super+, · Super+.      previous / next window
+   Super+Home · +End      first / last window in the strip
+   Alt+Tab · Super+Tab    live alt-tab
+   Super+Ctrl+arrows      move window
+   Super+T                take window
+   Super+I · Super+O      pull next window into column / push it out
+   Super+Return · +N      new window
+   Super+BackSpace        close window
+   Super+R · Shift+R      cycle window width / height
+   Super+F · Shift+F      maximise width / fullscreen
+   Super+C                centre horizontally
+   Super+`                back to the previous workspace
+   Super+Escape           send this window to the scratch layer
+   Super+Shift+Escape     show / hide the scratch layer (floats)
+
+ TERMINAL -- GHOSTTY
+   Ctrl+Shift+O / E       split right / down
+   Ctrl+Shift+arrows      move between splits
+   Ctrl+Shift+Enter       zoom / unzoom split
+   Ctrl+Shift+PgUp/PgDn   reorder tab
+   Ctrl+Shift+T / W       new / close tab                           [stock]
+   Ctrl+Shift+N / Q       new window / quit                         [stock]
+   Ctrl+PgUp / PgDn       previous / next tab                       [stock]
+   Alt+1 .. 9             jump to tab N                             [stock]
+   Ctrl+Shift+C / V       copy / paste                              [stock]
+   Ctrl+Shift+P           command palette                           [stock]
+   Ctrl+= / - / 0         font bigger / smaller / reset             [stock]
+
+ SHELL
+   Ctrl+R                 fzf: search command history
+   Ctrl+T                 fzf: pick a file, paste its path
+   Alt+C                  fzf: cd into a subdirectory
+   inside fzf             arrows or Ctrl+P/N move, Enter picks, Esc quits
+   z DIR · zi · z -       zoxide: jump / pick from list / previous dir
+   ll · la · lt           eza: long+git+hidden / all / tree 2 deep
+   bat FILE               cat with highlighting and line numbers
+   fd PAT · rg PAT        find files / search contents (skips .git, out)
+   git diff · log -p      rendered through delta
+
+ IF SOMETHING DOES NOT WORK
+   ~/alter/bootstrap/verify.sh  checks every piece; exit 0 = all good
+   rofi -dump-theme             empty output = theme broken (see overlay)
+   ghostty +list-keybinds       every binding Ghostty actually has
+   Ctrl+Shift+, in ghostty      reload config
+   ~/alter/uninstall.sh         puts the GNOME defaults back
+   Alt+F2 then r                restart GNOME Shell (X11)
+   gnome-extensions list      --enabled: what is actually loaded
+   gnome-extensions info UUID   State must say ACTIVE, not INITIALIZED
+   disable-user-extensions      if true, NO user extension loads at all
+
+

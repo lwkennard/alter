@@ -1,0 +1,11 @@
+# Machine-specific overrides -- never committed.
+local/
+*.local
+
+# Accidents
+.env
+*.pem
+*.key
+id_rsa*
+*.log
+__pycache__/

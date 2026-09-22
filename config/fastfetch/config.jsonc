@@ -1,0 +1,54 @@
+// alter -- fastfetch layout for the new-terminal greeting.
+// Symlinked to ~/.config/fastfetch/config.jsonc by bootstrap/30-dotfiles.sh.
+//
+// The picture is a separate plain-text file: config/fastfetch/logo.txt.
+// Edit that file and the greeting changes -- there is no build step.
+//   $1..$9 in it are palette colours, $$ is a literal '$'.
+//   Prefer "type": "file-raw" below if your art contains its own escapes.
+// Module reference: fastfetch --list-modules ; fastfetch --help <module>
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+
+  "logo": {
+    "type": "file",
+    "source": "~/.config/fastfetch/logo.txt",
+    // One colour: the art draws only the green face, and the white ring and
+    // eyes of vrgl-happy.png are left as terminal background. fastfetch takes
+    // a raw SGR body here, so "32" works too if your terminal is not truecolor.
+    "color": { "1": "38;2;94;127;78" },
+    // Tight on purpose. A default Ghostty window here is 77 columns and the
+    // cpu line is the longest; at left 2 / right 3 / separator "  " the banner
+    // came to 79 and wrapped, which breaks the two-column layout outright.
+    "padding": { "top": 0, "left": 1, "right": 2 }
+  },
+
+  "display": {
+    "separator": " ",
+    "color": { "keys": "35" },
+    "size": { "binaryPrefix": "si" }
+  },
+
+  // 13 modules, one row each: exactly as tall as logo.txt. A rule line or a
+  // blank row here would have to be answered by a blank row in the art to keep
+  // the two columns in step, and the panel is short enough to read without.
+  "modules": [
+    { "type": "title", "key": " " },
+    { "type": "os",       "key": "os  " },
+    { "type": "kernel",   "key": "ker " },
+    { "type": "uptime",   "key": "up  " },
+    { "type": "packages", "key": "pkg " },
+    { "type": "shell",    "key": "sh  " },
+    { "type": "terminal", "key": "term" },
+    // fastfetch's own "wm" module says "Mutter (X11)" and stops there, which
+    // undersells a session PaperWM is actually driving. Detected, not assumed:
+    // the extension can be switched off from Extension Manager at any time and
+    // the line has to follow. gsettings costs ~4ms, so this is free in practice.
+    { "type": "command", "key": "wm  ", "shell": "/bin/sh", "text":
+      "d=${XDG_CURRENT_DESKTOP:-}; e=; case $d in *GNOME*) w=Mutter; gsettings get org.gnome.shell enabled-extensions 2>/dev/null | grep -q paperwm && e=' w/ PaperWM';; '') w=;; *) w=${d%%:*};; esac; [ -z \"$w\" ] && { printf none; exit; }; case ${XDG_SESSION_TYPE:-} in x11) p=X11;; wayland) p=Wayland;; *) p=${XDG_SESSION_TYPE:-?};; esac; printf '%s (%s)%s' \"$w\" \"$p\" \"$e\"" },
+    { "type": "cpu",    "key": "cpu " },
+    { "type": "gpu",    "key": "gpu ", "hideType": "integrated" },
+    { "type": "memory", "key": "mem " },
+    { "type": "disk",   "key": "disk", "folders": "/" },
+    { "type": "colors", "symbol": "circle" }
+  ]
+}
