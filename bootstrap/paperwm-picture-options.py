@@ -5,8 +5,9 @@ PaperWM draws its own per-monitor background for every space and hardcodes
 GDesktopEnums.BackgroundStyle.ZOOM, so every value of picture-options --
 spanned, centered, stretched -- is a no-op while PaperWM is active.
 
-Usage: pwmpatch.py apply|revert|check <tiling.js>
-Exit: 0 patched/ok, 1 not patched, 2 cannot patch (unknown file contents).
+Usage: paperwm-picture-options.py apply|revert|check <tiling.js>
+Exit: 0 patched/ok, 1 not patched, 2 cannot patch (unknown file contents or
+bad usage).
 """
 import sys, os, shutil
 
@@ -44,6 +45,9 @@ EDITS = [(SIG_OLD, SIG_NEW), (STYLE_OLD, STYLE_NEW), (USE_OLD, USE_NEW)]
 
 
 def main():
+    if len(sys.argv) != 3 or sys.argv[1] not in ('apply', 'revert', 'check'):
+        print('usage: paperwm-picture-options.py apply|revert|check <tiling.js>', file=sys.stderr)
+        return 2
     action, path = sys.argv[1], sys.argv[2]
     orig = path + '.alter-orig'
     src = open(path, encoding='utf-8').read()
@@ -55,6 +59,13 @@ def main():
         if not os.path.exists(orig):
             print('no .alter-orig backup; leaving %s alone' % path)
             return 1
+        if MARK not in src:
+            # A PaperWM update already replaced the patched file. The backup
+            # is the previous release's tiling.js; restoring it would
+            # downgrade one file of the new release.
+            os.remove(orig)
+            print('%s is not patched (PaperWM updated?); dropped the stale backup' % path)
+            return 0
         shutil.copymode(path, orig)
         os.replace(orig, path)
         print('restored %s from .alter-orig' % path)
@@ -75,8 +86,10 @@ def main():
     for old, new in EDITS:
         out = out.replace(old, new, 1)
 
-    if not os.path.exists(orig):
-        shutil.copy2(path, orig)
+    # Always refresh the backup: reaching here means the file is unpatched,
+    # so it IS upstream's current tiling.js. Keeping an older .alter-orig
+    # after a PaperWM update would make `revert` restore the old release.
+    shutil.copy2(path, orig)
     tmp = path + '.alter-tmp'
     with open(tmp, 'w', encoding='utf-8') as fh:
         fh.write(out)

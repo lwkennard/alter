@@ -1,8 +1,8 @@
 # ~/.config/ghostty/config
 #
 # Ghostty's stock Linux keymap is already GNOME Terminal's: Ctrl+Shift+T/N/W/Q,
-# Ctrl+Shift+C/V, Ctrl+PgUp/PgDn, Alt+1..9, Ctrl+0/-/=. So this file overrides
-# almost nothing -- it only fills genuine gaps and sets appearance.
+# Ctrl+Shift+C/V, Ctrl+PgUp/PgDn, Alt+1..8 (Alt+9 = last tab), Ctrl+0/-/Plus.
+# So this file overrides only a few keys and sets appearance.
 
 # ---------------- appearance ----------------
 theme = Catppuccin Mocha
@@ -32,7 +32,8 @@ window-save-state = always
 shell-integration-features = cursor,sudo,title,ssh-env,path
 
 # ---------------- keybindings ----------------
-# GNOME Terminal reorders tabs with Ctrl+Shift+PgUp/PgDn; Ghostty ships no binding.
+# GNOME Terminal reorders tabs with Ctrl+Shift+PgUp/PgDn; Ghostty uses those
+# keys to jump between prompts, so replace that stock action here.
 keybind = ctrl+shift+page_down=move_tab:1
 keybind = ctrl+shift+page_up=move_tab:-1
 

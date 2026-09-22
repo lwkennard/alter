@@ -19,7 +19,8 @@ append_once "$HOME/.bashrc" 'config/shell/devtools.sh' \
 [ -f "$HOME/.config/shell/devtools.sh" ] && . "$HOME/.config/shell/devtools.sh"'
 
 # Sourced after devtools.sh so the banner is the last thing a new terminal
-# prints. It no-ops unless the shell is interactive, on a tty and outermost.
+# prints. It no-ops unless the shell is interactive and on a tty it has not
+# already greeted (it keys on the tty, not $SHLVL -- see README "Gotchas").
 append_once "$HOME/.bashrc" 'config/shell/greeting.sh' \
 '
 # --- alter: new-terminal greeting (fastfetch banner; `fetch` reprints it) ---
@@ -29,7 +30,7 @@ append_once "$HOME/.bashrc" 'config/shell/greeting.sh' \
 # If ~/.bash_profile exists, bash reads it INSTEAD of ~/.profile, and Ubuntu's
 # ~/.profile is what normally chains to ~/.bashrc. Without this, login shells
 # (ssh, TTY) get none of the tooling. ~/.bashrc guards itself, so this is safe.
-if [ -f "$HOME/.bash_profile" ] && ! grep -qE '(^|[^#])(\.|source)[[:space:]]+.*bashrc' "$HOME/.bash_profile"; then
+if [ -f "$HOME/.bash_profile" ] && ! grep -qE '^[^#]*(^|[[:space:];&])(\.|source)[[:space:]]+[^#]*bashrc' "$HOME/.bash_profile"; then
   append_once "$HOME/.bash_profile" 'alter: chain to ~/.bashrc' \
 '
 # --- alter: chain to ~/.bashrc for login shells ---
@@ -57,7 +58,7 @@ if have batcat || have bat; then
   if "$_bat" --list-themes 2>/dev/null | grep -qx "Catppuccin Mocha"; then
     skip "bat cache already has Catppuccin Mocha"
   else
-    run "$_bat" cache --build >/dev/null 2>&1 && ok "bat cache rebuilt"
+    runq "$_bat" cache --build && ok "bat cache rebuilt" || warn "bat cache --build failed"
   fi
 else
   skip "bat not installed; theme staged for later"
@@ -65,13 +66,20 @@ fi
 
 hdr "Default terminal"
 if have ghostty && [ -f /usr/share/applications/com.mitchellh.ghostty.desktop ]; then
-  for f in "$HOME/.config/xdg-terminals.list" \
-           "$HOME/.config/${XDG_CURRENT_DESKTOP%%:*}-xdg-terminals.list"; do
-    if [ "$(cat "$f" 2>/dev/null)" = "com.mitchellh.ghostty.desktop" ]; then
+  # xdg-terminal-exec takes the FIRST entry. GNOME Terminal's "set as default"
+  # prepends itself to every list it finds, so compare the first line, not the
+  # whole file. Only the first desktop in XDG_CURRENT_DESKTOP is written: its
+  # list is consulted before any later one's.
+  _lists=("$HOME/.config/xdg-terminals.list")
+  [ -n "${XDG_CURRENT_DESKTOP:-}" ] && _lists+=("$HOME/.config/${XDG_CURRENT_DESKTOP%%:*}-xdg-terminals.list")
+  for f in "${_lists[@]}"; do
+    if [ "$(head -1 "$f" 2>/dev/null)" = "com.mitchellh.ghostty.desktop" ]; then
       skip "$(basename "$f") already set"
     else
+      [ -f "$f" ] && warn "$(basename "$f") listed $(head -1 "$f") first; replacing"
       run mkdir -p "$(dirname "$f")"
       [ "$DRY_RUN" = 1 ] || echo com.mitchellh.ghostty.desktop > "$f"
+      [ "$DRY_RUN" = 1 ] && printf '  %s[dry-run]%s write %s\n' "$c_dim" "$c_off" "$f"
       ok "$(basename "$f") -> ghostty"
     fi
   done

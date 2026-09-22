@@ -50,3 +50,8 @@ keys() {
   echo "keys: hotkeys.txt not found (expected ~/alter/docs/hotkeys.txt)" >&2
   return 1
 }
+
+# ---------- machine-specific shell settings (never committed) ----------
+if [ -r "${ALTER_ROOT:-$HOME/alter}/local/env.sh" ]; then
+  . "${ALTER_ROOT:-$HOME/alter}/local/env.sh"
+fi

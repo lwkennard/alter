@@ -23,6 +23,7 @@ WANT=(
 CONFLICTS=(tiling-assistant@ubuntu.com)
 
 # ---- install any that are missing ----
+installed_any=0
 for uuid in "${WANT[@]}"; do
   if [ -d "$EXT_DIR/$uuid" ]; then skip "$uuid (installed)"; continue; fi
   info=$(curl -fsS --connect-timeout 25 \
@@ -33,7 +34,7 @@ for uuid in "${WANT[@]}"; do
   tmp="$(mktemp -d)"
   if run curl -fsSL --connect-timeout 30 -o "$tmp/e.zip" "https://extensions.gnome.org${dl}" &&
      run gnome-extensions install --force "$tmp/e.zip"; then
-    ok "installed $uuid"
+    ok "installed $uuid"; installed_any=1
   else
     warn "failed to install $uuid"
   fi
@@ -50,7 +51,7 @@ done
 gset org.gnome.shell disable-user-extensions false
 
 # ---- enable ours, in one gsettings write ----
-  python3 - "$DRY_RUN" "$EXT_DIR" "${WANT[@]}" -- "${CONFLICTS[@]}" <<'PY'
+python3 - "$DRY_RUN" "$EXT_DIR" "${WANT[@]}" -- "${CONFLICTS[@]}" <<'PY'
 import subprocess, ast, sys, os
 dry = sys.argv[1] == "1"
 ext_dir = sys.argv[2]
@@ -98,7 +99,7 @@ xset() {  # xset <uuid> <schema> <key> <value>
   if [ "$cur" = "$4" ] || { case "$cur$4" in *[!0-9.\ -]*) false;; *) awk -v a="$cur" -v b="$4" 'BEGIN{exit !(a-b<1e-9 && b-a<1e-9)}';; esac; }; then
     skip "$3 (already set)"; return 0
   fi
-  run gsettings --schemadir "$d" set "$2" "$3" "$4" && ok "$3"
+  run gsettings --schemadir "$d" set "$2" "$3" "$4" && { ok "$3: $cur -> $4"; xset_changed=1; } || warn "failed: $2 $3"
 }
 
 P=org.gnome.shell.extensions.paperwm
@@ -129,10 +130,12 @@ xset $CU $C history-size 50
 xset $CU $C move-item-first true
 xset $CU $C preview-size 45
 
-say ""
-warn "New extensions only load after a GNOME Shell restart."
-say  "    X11:     Alt+F2, type 'r', Enter"
-say  "    Wayland: log out and back in"
+if [ "$installed_any" = 1 ]; then
+  say ""
+  warn "New extensions only load after a GNOME Shell restart."
+  say  "    X11:     Alt+F2, type 'r', Enter"
+  say  "    Wayland: log out and back in"
+fi
 
 # ---- make PaperWM yield the keys 20-gnome.sh already assigned ----
 # PaperWM ships 100 bindings; four collide with this repo's desktop keys.
@@ -172,32 +175,43 @@ done
 # write gets emptied and queued here. The rebind below restores it, but PaperWM
 # writes back a stale copy of the list, so the entry stays -- and on disable it
 # would re-apply Super+Shift+Left after uninstall.sh reset the key to stock.
-# That queueing lands after this scrub, so the first run on such a machine can
-# leave it behind; the second run removes it (verify.sh flags it meanwhile).
+# That queueing can land after the first scrub, and the rebind itself makes
+# PaperWM replay and rewrite the list, so the scrub runs again after the
+# rebind -- once PaperWM has reacted -- and one run reaches the verified state.
 PWS="$EXT_DIR/$PU/schemas"
-if [ -d "$PWS" ]; then
-  _rk=$(gsettings --schemadir "$PWS" get $P restore-keybinds 2>/dev/null) || _rk=""
-  case "$_rk" in
+scrub_restore_keybinds() {  # scrub_restore_keybinds [quiet]
+  [ -d "$PWS" ] || return 0
+  local rk new
+  rk=$(gsettings --schemadir "$PWS" get $P restore-keybinds 2>/dev/null) || rk=""
+  case "$rk" in
     *'"move-to-monitor-'*|*'"move-to-workspace-'*)
       if [ "$DRY_RUN" = 1 ]; then
         printf '  %s[dry-run]%s drop move-to-{monitor,workspace}-* from PaperWM restore-keybinds\n' "$c_dim" "$c_off"
       else
-        _new=$(RK="$_rk" python3 -c '
+        new=$(RK="$rk" python3 -c '
 import ast, json, os
 d = json.loads(ast.literal_eval(os.environ["RK"]))
 for k in [k for k in d if k.startswith(("move-to-monitor-", "move-to-workspace-"))]:
     del d[k]
 print(json.dumps(d, separators=(",", ":")))') &&
-          gsettings --schemadir "$PWS" set $P restore-keybinds "$_new" &&
+          gsettings --schemadir "$PWS" set $P restore-keybinds "$new" &&
           ok "PaperWM will no longer restore move-to-{monitor,workspace}-*"
       fi ;;
-    *) skip "PaperWM restore-keybinds has no move-to-{monitor,workspace}-* (already clean)" ;;
+    *) [ "${1:-}" = quiet ] || skip "PaperWM restore-keybinds has no move-to-{monitor,workspace}-* (already clean)" ;;
   esac
-fi
+}
+scrub_restore_keybinds
+xset_changed=0
 xset $PU $PWK switch-monitor-left  "['<Super><Shift><Alt>Left']"
 xset $PU $PWK switch-monitor-right "['<Super><Shift><Alt>Right']"
 xset $PU $PWK switch-monitor-above "['<Super><Shift><Alt>Up']"
 xset $PU $PWK switch-monitor-below "['<Super><Shift><Alt>Down']"
+if [ "$xset_changed" = 1 ]; then
+  # PaperWM reacts to the rebind asynchronously; give it a moment to replay
+  # and write its list back before scrubbing it again.
+  [ "$DRY_RUN" = 1 ] || sleep 2
+  scrub_restore_keybinds quiet
+fi
 
 # ---- make PaperWM honour picture-options (one wallpaper across all monitors) ----
 # PaperWM does not let GNOME draw the desktop. Every space builds its own

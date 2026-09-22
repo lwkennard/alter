@@ -25,7 +25,8 @@ tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' RETURN EXIT
 say "  downloading (~128 MB, extracting 8 files)…"
 run curl -fL --retry 2 --connect-timeout 20 -o "$tmp/jb.zip" "$URL" || { err "download failed"; return 1 2>/dev/null || exit 1; }
 run mkdir -p "$FONT_DIR"
-run unzip -o -j "$tmp/jb.zip" "${WANT[@]}" -d "$FONT_DIR" >/dev/null
-run fc-cache -f "$FONT_DIR" >/dev/null 2>&1
+runq unzip -o -j "$tmp/jb.zip" "${WANT[@]}" -d "$FONT_DIR" || { err "unzip failed (release renamed its files?)"; return 1 2>/dev/null || exit 1; }
+runq fc-cache -f "$FONT_DIR"
+[ "$DRY_RUN" = 1 ] && { return 0 2>/dev/null || exit 0; }   # nothing was downloaded to check
 fc-list : family 2>/dev/null | grep -F 'JetBrainsMono Nerd Font' >/dev/null \
   && ok "JetBrainsMono Nerd Font installed" || warn "font cache did not pick it up yet"

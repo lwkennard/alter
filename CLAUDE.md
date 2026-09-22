@@ -99,8 +99,10 @@ The machine is disposable. This repo is the state.
 
 1. **Idempotent.** `gset`, `link` and `append_once` already are; anything new
    must detect its own prior work and `skip` on the second run.
-2. **Dry-run honest.** Route side effects through `run`. When `run` cannot
-   express it — a shell redirect, for instance — guard explicitly, the way
+2. **Dry-run honest.** Route side effects through `run`; use `runq` when a
+   command's own output should be hidden, since `run cmd >/dev/null` also
+   swallows the `[dry-run]` line. When `run` cannot express a side effect — a
+   shell redirect, for instance — guard explicitly, the way
    `30-dotfiles.sh` writes `xdg-terminals.list` behind `[ "$DRY_RUN" = 1 ] ||`.
 3. **Guarded, not assumed.** `have`, `is_gnome`, `is_debianish`, `gnome_ver`.
    Warn and skip on a machine that does not match; never fail the whole run.

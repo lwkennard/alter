@@ -47,6 +47,10 @@ ap.add_argument("--fill", type=int, default=0,
 ap.add_argument("--ramp", default=" .:-=+*oa#@",
                 help="ascii: characters from empty to solid")
 a = ap.parse_args()
+if a.rows < 1 or a.cols < 0:
+    ap.error("--rows must be at least 1 and --cols not negative")
+if not 1 <= a.colors <= 9:
+    ap.error("--colors must be 1-9: fastfetch only has colour tokens $1..$9")
 
 im = Image.open(a.image).convert("RGB")
 w, h = im.size

@@ -1,5 +1,6 @@
 # Machine-specific overrides -- never committed.
-local/
+local/*
+!local/README.md
 *.local
 
 # Accidents
@@ -9,3 +10,13 @@ local/
 id_rsa*
 *.log
 __pycache__/
+*.py[cod]
+*~
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
+*.bak
+*.orig
+alter-backup/

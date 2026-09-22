@@ -2,7 +2,7 @@
 # alter -- workstation bootstrap.
 #   ./install.sh              run everything
 #   ./install.sh --dry-run    show what would change, touch nothing
-#   ./install.sh gnome only   run a subset (packages|fonts|gnome|dotfiles|verify)
+#   ./install.sh gnome only   run a subset (packages|fonts|gnome|dotfiles|extensions|verify)
 set -u
 export ALTER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$ALTER_ROOT/bootstrap/lib.sh"

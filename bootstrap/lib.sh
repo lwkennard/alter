@@ -17,6 +17,11 @@ run() {
   if [ "$DRY_RUN" = 1 ]; then printf '  %s[dry-run]%s %s\n' "$c_dim" "$c_off" "$*"; return 0; fi
   "$@"
 }
+# `run`, with the command's own output discarded. Use this instead of
+# `run cmd >/dev/null`: that redirect would swallow the [dry-run] line too.
+runq() {
+  if [ "$DRY_RUN" = 1 ]; then run "$@"; else "$@" >/dev/null 2>&1; fi
+}
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
@@ -47,7 +52,6 @@ link() {
 # Append a block to a file exactly once, keyed by a marker string.
 append_once() {
   local file="$1" marker="$2" block="$3"
-  run touch "$file"
   if grep -qF "$marker" "$file" 2>/dev/null; then skip "$file (hook present)"; return 0; fi
   if [ "$DRY_RUN" = 1 ]; then printf '  %s[dry-run]%s append to %s\n' "$c_dim" "$c_off" "$file"; return 0; fi
   printf '%s\n' "$block" >> "$file"

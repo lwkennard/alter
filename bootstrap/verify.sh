@@ -5,7 +5,9 @@ fails=0
 
 hdr "Binaries"
 for c in rofi fzf zoxide fdfind batcat eza delta gh ghostty; do
-  if have "$c"; then ok "$c -> $(command -v "$c")"; else err "$c MISSING"; fails=$((fails+1)); fi
+  if have "$c"; then ok "$c -> $(command -v "$c")"
+  elif [ "$c" = ghostty ] && [ "${ALTER_SKIP_GHOSTTY:-0}" = 1 ]; then warn "ghostty not installed (ALTER_SKIP_GHOSTTY=1)"
+  else err "$c MISSING"; fails=$((fails+1)); fi
 done
 
 hdr "Font"
@@ -39,6 +41,23 @@ if have rofi; then
   fi
 fi
 
+hdr "Dotfiles"
+# Every `link` in 30-dotfiles.sh. A config that is not linked is not loaded.
+for f in ghostty/config rofi/config.rasi rofi/themes/catppuccin-mocha.rasi \
+         shell/devtools.sh shell/greeting.sh fastfetch/config.jsonc fastfetch/logo.txt \
+         "bat/themes/Catppuccin Mocha.tmTheme"; do
+  [ -L "$HOME/.config/$f" ] && [ "$(readlink -f "$HOME/.config/$f")" = "$(readlink -f "$ALTER_ROOT/config/$f")" ] \
+    && ok "~/.config/$f linked" || { err "~/.config/$f is not linked to the repo (run: ./install.sh dotfiles)"; fails=$((fails+1)); }
+done
+[ "$(readlink -f "$HOME/.local/bin/zenity-askpass" 2>/dev/null)" = "$(readlink -f "$ALTER_ROOT/bin/zenity-askpass")" ] \
+  && ok "~/.local/bin/zenity-askpass linked" || warn "~/.local/bin/zenity-askpass not linked"
+for m in config/shell/devtools.sh config/shell/greeting.sh; do
+  grep -qF "$m" "$HOME/.bashrc" 2>/dev/null \
+    && ok "~/.bashrc sources ${m##*/}" || { err "~/.bashrc does not source ${m##*/} (run: ./install.sh dotfiles)"; fails=$((fails+1)); }
+done
+git config --global --get-all include.path 2>/dev/null | grep -qxF "$ALTER_ROOT/config/git/gitconfig.include" \
+  && ok "git includes config/git/gitconfig.include" || warn "git include.path for gitconfig.include missing"
+
 hdr "Shell integration"
 # readline bindings only exist under a real pty, so allocate one
 if have script; then
@@ -51,10 +70,29 @@ bash -c '. "$HOME/.config/shell/devtools.sh"; type -t __zoxide_z' 2>/dev/null | 
 
 hdr "GNOME"
 if is_gnome; then
-  for i in 1 2 3 4; do
+  ws="${ALTER_WS_COUNT:-4}"; case "$ws" in [1-9]) ;; *) ws=4 ;; esac   # same rule as 20-gnome.sh
+  v=$(gsettings get org.gnome.desktop.wm.preferences num-workspaces 2>/dev/null)
+  d=$(gsettings get org.gnome.mutter dynamic-workspaces 2>/dev/null)
+  [ "$v" = "$ws" ] && [ "$d" = false ] && ok "$ws fixed workspaces" \
+    || warn "num-workspaces=$v dynamic-workspaces=$d (expected $ws, false)"
+  _dock=0; _hot=0; gsettings list-schemas 2>/dev/null | grep -qx org.gnome.shell.extensions.dash-to-dock && _dock=1
+  for i in $(seq 1 "$ws"); do
     v=$(gsettings get org.gnome.desktop.wm.keybindings "switch-to-workspace-$i" 2>/dev/null)
-    [ "$v" = "['<Super>$i']" ] && ok "Super+$i -> workspace $i" || warn "Super+$i is $v"
+    [ "$v" = "['<Super>$i']" ] && ok "Super+$i -> workspace $i" \
+      || { err "switch-to-workspace-$i is $v (expected ['<Super>$i'])"; fails=$((fails+1)); }
+    v=$(gsettings get org.gnome.desktop.wm.keybindings "move-to-workspace-$i" 2>/dev/null)
+    [ "$v" = "['<Super><Shift>$i']" ] && ok "Super+Shift+$i -> move window to workspace $i" \
+      || { err "move-to-workspace-$i is $v (expected ['<Super><Shift>$i'])"; fails=$((fails+1)); }
+    # GNOME's app-switching and the Ubuntu dock both ship on Super+N; either one
+    # left bound means Super+N does two things.
+    v=$(gsettings get org.gnome.shell.keybindings "switch-to-application-$i" 2>/dev/null)
+    [ "$v" = "@as []" ] || { err "switch-to-application-$i is $v -- collides with Super+$i"; fails=$((fails+1)); _hot=1; }
+    if [ "$_dock" = 1 ]; then
+      v=$(gsettings get org.gnome.shell.extensions.dash-to-dock "app-hotkey-$i" 2>/dev/null)
+      [ "$v" = "@as []" ] || { err "dash-to-dock app-hotkey-$i is $v -- collides with Super+$i"; fails=$((fails+1)); _hot=1; }
+    fi
   done
+  [ "$_hot" = 0 ] && ok "Super+1..$ws free of app-switching and dock hotkeys"
   v=$(gsettings get org.gnome.mutter workspaces-only-on-primary 2>/dev/null)
   [ "$v" = false ] && ok "second monitor joins workspaces" || warn "workspaces-only-on-primary=$v"
   # Cosmetic, so a warn: any other value still draws a wallpaper, just one
@@ -93,6 +131,47 @@ if is_gnome; then
       && ok "Super+Alt+$d -> workspace $lc (sole binding)" \
       || warn "switch-to-workspace-$lc is $v (expected ['<Super><Alt>$d'])"
   done
+  # The rofi custom keybinding 20-gnome.sh registers, found by name as it is.
+  _rofi=""
+  for p in $(gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings 2>/dev/null \
+             | grep -oE "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/[^/']+/"); do
+    _s="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$p"
+    [ "$(gsettings get "$_s" name 2>/dev/null)" = "'Rofi window switcher'" ] || continue
+    [ "$(gsettings get "$_s" command 2>/dev/null)" = "'rofi -show window'" ] && _rofi=$(gsettings get "$_s" binding 2>/dev/null | tr -d "'")
+  done
+  # Expected key: same rule as 20-gnome.sh -- ALTER_ROFI_KEY, else Super+Space
+  # with one input source and Super+W when Super+Space switches sources.
+  _want="${ALTER_ROFI_KEY:-}"
+  if [ -z "$_want" ]; then
+    _src=$(gsettings get org.gnome.desktop.input-sources sources 2>/dev/null | grep -o "('xkb'\|('ibus'" | wc -l)
+    if [ "$_src" -le 1 ]; then _want='<Super>space'; else _want='<Super>w'; fi
+  fi
+  if [ "$_rofi" = "$_want" ]; then
+    ok "$_rofi -> rofi window switcher"
+  else
+    err "rofi window switcher is on '${_rofi:-nothing}', expected '$_want' (run: ./install.sh gnome)"; fails=$((fails+1))
+  fi
+  if [ "$_rofi" = "<Super>space" ]; then
+    v="$(gsettings get org.gnome.desktop.wm.keybindings switch-input-source 2>/dev/null)$(gsettings get org.gnome.desktop.wm.keybindings switch-input-source-backward 2>/dev/null)"
+    [ "$v" = "@as []@as []" ] && ok "input-source switching off Super+Space" \
+      || { err "switch-input-source still bound -- collides with rofi on Super+Space"; fails=$((fails+1)); }
+  fi
+  v=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)
+  [ "$v" = "'prefer-dark'" ] && ok "dark colour scheme" || warn "color-scheme=$v (expected 'prefer-dark')"
+fi
+
+hdr "Default terminal"
+if have ghostty; then
+  # xdg-terminal-exec uses the first entry; GNOME Terminal puts itself first
+  # when made the default, so this drifts without anyone running install.sh.
+  _xt=$(head -1 "$HOME/.config/${XDG_CURRENT_DESKTOP%%:*}-xdg-terminals.list" 2>/dev/null)
+  [ -n "$_xt" ] || _xt=$(head -1 "$HOME/.config/xdg-terminals.list" 2>/dev/null)
+  [ "$_xt" = com.mitchellh.ghostty.desktop ] && ok "xdg-terminals.list prefers ghostty" \
+    || warn "xdg-terminals.list prefers ${_xt:-nothing} (re-run: ./install.sh dotfiles)"
+  if is_gnome; then
+    v=$(gsettings get org.gnome.desktop.default-applications.terminal exec 2>/dev/null)
+    [ "$v" = "'ghostty'" ] && ok "GNOME default terminal is ghostty" || warn "default-applications.terminal exec=$v"
+  fi
 fi
 
 
@@ -174,6 +253,11 @@ if is_gnome && have gnome-extensions; then
          fails=$((fails+1)) ;;
       *) ok "PaperWM will not restore move-to-{monitor,workspace}-*" ;;
     esac
+  fi
+  _cid="$HOME/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com/schemas"
+  if [ -d "$_cid" ]; then
+    v=$(gsettings --schemadir "$_cid" get org.gnome.shell.extensions.clipboard-indicator toggle-menu 2>/dev/null)
+    [ "$v" = "['<Super>v']" ] && ok "Super+V -> clipboard history" || warn "Clipboard Indicator toggle-menu is $v (expected ['<Super>v'])"
   fi
   # Ubuntu's extensions are enabled by DEFAULT and never appear in
   # enabled-extensions, so grepping that list always "passes" no matter what

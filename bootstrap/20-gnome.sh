@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GNOME desktop settings: workspaces, keybindings, rofi launcher.
+# GNOME desktop settings: workspaces, keybindings, appearance, wallpaper, rofi.
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 hdr "GNOME"
@@ -11,13 +11,22 @@ fi
 have gsettings || { err "gsettings not found"; return 1 2>/dev/null || exit 1; }
 say "  GNOME Shell $(gnome_ver), session ${XDG_SESSION_TYPE:-unknown}"
 
+# 1..9: GNOME has switch-to-application-N only up to 9, and Super+10 is no key.
 WS_COUNT="${ALTER_WS_COUNT:-4}"
+case "$WS_COUNT" in
+  [1-9]) ;;
+  *) warn "ALTER_WS_COUNT=$WS_COUNT is not 1-9; using 4"; WS_COUNT=4 ;;
+esac
 
 # ---- workspaces ----
 gset org.gnome.mutter workspaces-only-on-primary false
 gset org.gnome.mutter dynamic-workspaces false
 gset org.gnome.desktop.wm.preferences num-workspaces "$WS_COUNT"
-gset org.gnome.mutter edge-tiling true
+# No edge-tiling here. It is GNOME's default already, and PaperWM
+# (40-extensions.sh) forces it false on every load and restores the saved value
+# on disable (patches.js saveRuntimeDisable). Setting it true while PaperWM runs
+# turns GNOME's snap-to-edge back on underneath the tiler, and every re-run
+# would do it again.
 
 # ---- appearance: Catppuccin Mocha is dark with a mauve accent ----
 # Yaru-purple-dark is the closest NATIVE match. A third-party GTK theme would
@@ -97,6 +106,8 @@ fi
 if [ "$ROFI_KEY" = '<Super>space' ]; then
   gset org.gnome.desktop.wm.keybindings switch-input-source          "@as []"
   gset org.gnome.desktop.wm.keybindings switch-input-source-backward "@as []"
+elif [ -n "${ALTER_ROFI_KEY:-}" ]; then
+  say "  rofi on $ROFI_KEY (ALTER_ROFI_KEY); input-source keys left alone"
 else
   warn "$SRC_COUNT input sources present; using $ROFI_KEY for rofi instead of Super+Space"
 fi

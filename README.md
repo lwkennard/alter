@@ -1,6 +1,6 @@
 # ALTER
 
-Tools for my personal workflow, portablized. 
+Tools for my personal workflow, portablized.
 Clone it onto a new machine, run one script, log out and back in.
 
 Built and verified on **Ubuntu 24.04 / GNOME 46 / X11**.
@@ -48,7 +48,7 @@ The wallpaper is set to `spanned`, so one picture is sliced across all
 monitors rather than copied onto each. That takes two changes, not one:
 the gsettings key in `20-gnome.sh`, **and** a patch to PaperWM in
 `40-extensions.sh`, because PaperWM draws the desktop itself and ignores the
-key. The picture itself stays yours -- this repo sets the layout, never
+key. The picture itself stays yours — this repo sets the layout, never
 `picture-uri`.
 
 **Deliberately not included:** a multiplexer (tmux/zellij) — high value, but
@@ -65,13 +65,15 @@ GNOME Terminal default unless it had to, and every exception is noted.
 
 | Key | Action |
 |---|---|
-| `Super+1..4` | Go to workspace N (fixed — always the same workspace) |
+| `Super+1..4` | Go to workspace N (fixed — always the same workspace; was dock favourites) |
 | `Super+Shift+1..4` | Move focused window to workspace N |
 | `Super+Alt+←/→` | Previous / next workspace |
 | `Super+Shift+←/→` | Move focused window to previous / next workspace (stock move-to-monitor unbound) |
 | `Super+Shift+Alt+arrows` | Focus the other monitor (PaperWM) |
+| `Super+Ctrl+Shift+arrows` | Move window to another monitor (PaperWM) |
+| `Super+Alt+↑/↓` | Swap the monitors above / below (PaperWM) |
 | `Super+V` | Clipboard history, last 50 copies |
-| `Super+Space` | rofi window switcher |
+| `Super+Space` | rofi window switcher (defaults to `Super+W` with multiple input sources; overridable with `ALTER_ROFI_KEY`) |
 | `Ctrl+Super+1..9` | Dock favourite N (unchanged) |
 | `Ctrl+Alt+T` | New terminal |
 
@@ -96,8 +98,8 @@ Check the gschema XML before assuming a key is yours to take — a GNOME
 
 ### Ghostty
 
-Ghostty's stock Linux keymap already matches GNOME Terminal, so
-`config/ghostty/config` overrides almost nothing. These are **defaults**:
+Ghostty's stock Linux keymap largely matches GNOME Terminal, so
+`config/ghostty/config` changes only a few keys. These are **defaults**:
 
 | Key | Action |
 |---|---|
@@ -105,22 +107,25 @@ Ghostty's stock Linux keymap already matches GNOME Terminal, so
 | `Ctrl+Shift+W` / `Q` | Close tab / quit |
 | `Ctrl+Shift+C` / `V` | Copy / paste |
 | `Ctrl+PgUp` / `PgDn` | Previous / next tab |
-| `Alt+1..9` | Jump to tab N |
-| `Ctrl+0` / `-` / `=` | Font size |
+| `Alt+1..8` / `Alt+9` | Jump to tab N / last tab |
+| `Ctrl+Plus` / `-` / `0` | Font bigger / smaller / reset |
 | `Ctrl+Shift+O` / `E` | Split right / down |
 | `Ctrl+Shift+Enter` | Zoom split |
 | `Ctrl+Shift+P` | Command palette |
 
-Two bindings are added:
+Two binding families are set here:
 
 | Key | Action | Why |
 |---|---|---|
-| `Ctrl+Shift+PgUp/PgDn` | Reorder tab | GNOME Terminal has it; Ghostty ships without |
+| `Ctrl+Shift+PgUp/PgDn` | Reorder tab | Replaces Ghostty's jump-to-prompt default |
 | `Ctrl+Shift+arrows` | Move between splits | Replaces Ghostty's `Ctrl+Alt+arrows` default, which collides with GNOME's workspace switch |
 
 `Ctrl+Shift+←/→` were Ghostty's aliases for previous/next tab. `Ctrl+PgUp/PgDn`,
 `Ctrl+Tab`/`Ctrl+Shift+Tab` and `Alt+1..9` all still switch tabs, so nothing is
 lost.
+
+Ghostty's stock `Ctrl+Alt+arrows` split bindings are explicitly unbound in
+this config, leaving those keys free for terminal programs.
 
 Note that `Ctrl+Shift+arrow` is *not* a free key inside the terminal — unbound,
 it sends `\e[1;6A..D` to the running program (just as `Ctrl+Alt+arrow` sends
@@ -204,8 +209,11 @@ bin/img2logo ~/Pictures/whatever.png --rows 13 --style ascii > config/fastfetch/
 | `--style ascii` | fill one colour with ordinary characters, everything else background |
 | `--style blocks` | half-block glyphs, every colour drawn, one colour token per cell |
 | `--rows N` | height in character rows; width defaults to `2N`, which keeps a square subject square |
+| `--cols N` | override the output width in character columns |
+| `--colors N` | quantise to the N most common source colours (default 3) |
 | `--fill N` | which colour `ascii` draws: 0 is the most common one that is not background |
 | `--ramp " .:-=+*oa#@"` | the density characters, empty to solid |
+| `--ink N` | minimum non-background share to draw a block cell (default 0.40) |
 | `--no-mirror` | keep the left and right halves as the image has them |
 
 It quantises to the few most common colours and treats whatever touches the
@@ -248,7 +256,7 @@ one, `fastfetch --help <module>` its options.
 
 | Want | Do |
 |---|---|
-| Print it again | `fetch` (takes fastfetch flags: `fetch --logo none`) |
+| Print it again | `fetch` (takes fastfetch flags when installed: `fetch --logo none`) |
 | Try someone else's art | `fetch --logo-type file --logo /path/to/art.txt` |
 | Use a picture you have | `bin/img2logo pic.png --rows 13 --style ascii > config/fastfetch/logo.txt` |
 | Stop it appearing | `export ALTER_NO_GREETING=1` in `~/.bashrc` |
@@ -260,9 +268,9 @@ and stays quiet, while a new window is a new pts and greets. `fetch` ignores
 the marker and always prints.
 
 If fastfetch is not installed — a non-Debian machine, or
-`ALTER_SKIP_FASTFETCH=1` — the banner still appears, drawn by a coreutils-only
-fallback in `config/shell/greeting.sh` that shows the same art and a shorter
-set of facts.
+`ALTER_SKIP_FASTFETCH=1` — the banner still appears, drawn by a fallback in
+`config/shell/greeting.sh` that needs only standard shell tools and shows the
+same art with a shorter set of facts.
 
 ---
 
@@ -271,7 +279,7 @@ set of facts.
 ```
 alter/
 ├── install.sh              entry point; runs stages in order
-├── uninstall.sh            resets GNOME keys, unlinks configs
+├── uninstall.sh            resets GNOME keys, unlinks configs, unhooks ~/.bashrc
 ├── bootstrap/
 │   ├── lib.sh              logging, symlink+backup, gset, distro detection
 │   ├── 00-packages.sh      apt packages + Ghostty (PPA on Ubuntu < 26.04)
@@ -279,25 +287,31 @@ alter/
 │   ├── 20-gnome.sh         workspaces, keybindings, rofi launcher
 │   ├── 30-dotfiles.sh      symlinks, .bashrc hook, git include, default term
 │   ├── 40-extensions.sh    PaperWM, Just Perfection, Clipboard Indicator
+│   ├── paperwm-picture-options.py  patches PaperWM wallpaper rendering
 │   └── verify.sh           post-install checks; exits non-zero on failure
-├── config/                 the actual dotfiles (symlinked into ~)
+├── config/                 dotfiles and source assets; active configs linked into ~
 │   ├── ghostty/config
 │   ├── rofi/{config.rasi,themes/catppuccin-mocha.rasi}
 │   ├── bat/themes/         Catppuccin Mocha tmTheme for bat + delta
 │   ├── shell/devtools.sh   fzf/zoxide/fd/bat/eza wiring, every block guarded
-│   ├── shell/greeting.sh   new-terminal banner + `fetch`, with a no-deps fallback
+│   ├── shell/greeting.sh   new-terminal banner + `fetch`, with a fallback
 │   ├── fastfetch/logo.txt  the ASCII art — edit this, no build step
 │   ├── fastfetch/config.jsonc  what the banner prints, and in what order
-│   └── fastfetch/vrgl-happy.png  the picture logo.txt was converted from
-│   └── git/gitconfig.include
+│   ├── fastfetch/vrgl-happy.png  the picture logo.txt was converted from
+│   └── git/gitconfig.include  delta pager and colour settings
 ├── bin/zenity-askpass      GUI sudo prompt for non-TTY contexts
 ├── bin/img2logo            image -> ASCII/block logo art (needs python3-pil)
-├── docs/hotkeys.txt        plain-text hotkey reference (`keys`)
+├── docs/
+│   ├── hotkeys.txt         plain-text hotkey reference (`keys`)
+│   └── TODO.md             outstanding work, acceptance criteria, loose ends
+├── local/README.md         machine-specific env.sh is sourced when readable
+├── .gitignore              local files, backups, and editor junk
 ├── CLAUDE.md               repo rules: keep `keys` in sync, keep setup reproducible
-└── docs/TODO.md            outstanding work, acceptance criteria, loose ends
+└── README.md               setup, usage, and conventions
 ```
 
-`config/` files are **symlinked**, not copied — edit them in place and commit.
+Active dotfiles under `config/` are **symlinked**, not copied — edit them in
+place and commit. The source PNG and Git include are read from the repo.
 
 ---
 
@@ -309,7 +323,9 @@ Conventions to follow if you extend it (human or agent):
   when the value differs) and `link` (skips if already correct).
 - **Everything is reversible.** `link` backs up whatever it replaces into
   `~/.local/share/alter-backup/<timestamp>/`.
-- **`--dry-run` must stay honest.** Route side effects through `run`.
+- **`--dry-run` must stay honest.** Route side effects through `run`. Use
+  `runq` when a command's own output should be hidden: `run cmd >/dev/null`
+  also swallows the `[dry-run]` line.
 - **Detect, don't assume.** `is_gnome`, `is_debianish`, `have`, `gnome_ver`.
   Warn and skip rather than failing the whole run.
 - **New stage?** Drop `NN-name.sh` in `bootstrap/`, add it to `STAGES` and
@@ -327,23 +343,23 @@ Conventions to follow if you extend it (human or agent):
 ### Gotchas found the hard way
 
 - **An extension can be installed, listed in `enabled-extensions`, and still
-  never run.** Every extension looked configured -- `gnome-extensions info`
+  never run.** Every extension looked configured — `gnome-extensions info`
   said `Enabled: No`, `State: INITIALIZED`, and PaperWM had never tiled a
   single window. The cause is `org.gnome.shell disable-user-extensions`, whose
   own gschema says it *"takes precedence over the enabled-extensions setting"*:
   one boolean silently kills everything under
   `~/.local/share/gnome-shell/extensions`. The tell is that **only user
-  extensions die** -- the four in `/usr/share` (ding, ubuntu-dock,
+  extensions die** — the four in `/usr/share` (ding, ubuntu-dock,
   appindicators, tiling-assistant) stayed `ACTIVE` while all three of ours sat
   at `INITIALIZED`. GNOME Settings' Extensions toggle and gnome-shell's
   crash-recovery both set it, so a machine acquires it without anyone choosing
   it. `40-extensions.sh` now sets it false before enabling anything, and
-  flipping it loads the extensions live -- no shell restart needed.
+  flipping it loads the extensions live — no shell restart needed.
 
 - **Ubuntu's own extensions are enabled by default, so removing them from
   `enabled-extensions` does nothing.** `40-extensions.sh` "disabled"
   tiling-assistant by filtering it out of that list, and `verify.sh` confirmed
-  success by grepping the same list -- while `gnome-extensions info` said
+  success by grepping the same list — while `gnome-extensions info` said
   `Enabled: Yes`, `State: ACTIVE`. Extensions shipped in `/usr/share` never
   appear in `enabled-extensions` at all; the only key that turns one off is
   `disabled-extensions`, which is what `gnome-extensions disable` writes. A
@@ -352,7 +368,7 @@ Conventions to follow if you extend it (human or agent):
 
 - **A verify check that prints state instead of asserting it is not a check.**
   `verify.sh` printed `✓ paperwm@paperwm.github.com (INITIALIZED)` and exited 0
-  for as long as PaperWM had never loaded -- the state was interpolated into
+  for as long as PaperWM had never loaded — the state was interpolated into
   the success line rather than compared against `ACTIVE`. Both bugs above hid
   behind a green run. Assert the value you require; never echo whatever you
   found next to a tick.
@@ -447,15 +463,28 @@ Conventions to follow if you extend it (human or agent):
   replay writes back a stale copy (`restore-keybinds` still listed
   `move-to-workspace-left` after the key was live again). Left there, disabling
   PaperWM re-applies it after `uninstall.sh` resets it, so those entries are
-  dropped too. On a machine that had the old binding, run
-  `./install.sh extensions` twice.
+  dropped too. Because the rebind itself makes PaperWM rewrite the list,
+  `40-extensions.sh` scrubs it a second time after rebinding, so one run
+  reaches the verified state (that second pass has only been exercised under
+  `--dry-run`). `uninstall.sh` therefore disables the extensions first and
+  waits for PaperWM's `disable()` to finish before resetting GNOME keys;
+  otherwise that replay could overwrite the reset.
+- **GNOME Terminal can reclaim the default terminal after installation.**
+  The default changed back and `verify.sh` did not catch it. Starting
+  `gnome-terminal-server` rewrites `~/.config/xdg-terminals.list`,
+  `ubuntu-xdg-terminals.list`, and `GNOME-xdg-terminals.list`: its binary
+  contains the format string `%s-xdg-terminals.list`, and all three files
+  changed within 110 ms at 10:42:43, with `org.gnome.Terminal.desktop` first
+  and Ghostty second. `xdg-terminal-exec` reads the first entry. The dotfiles
+  stage now checks that line, and `verify.sh` warns to run
+  `./install.sh dotfiles`. Launching GNOME Terminal can make it recur.
 - **Check defaults before overriding them.** `ghostty +list-keybinds --default`
   revealed that ~20 of the bindings originally written here were redundant, and
   three settings (`scrollback-limit`, `copy-on-select`, split direction) were
   *worse* than stock.
 - **PaperWM draws the desktop itself, so `picture-options` does nothing.**
   The symptom is total: `spanned`, `centered` and `stretched` all render
-  identically -- one zoomed copy per monitor -- whether set with `gsettings`,
+  identically — one zoomed copy per monitor — whether set with `gsettings`,
   GNOME Settings or GNOME Tweaks. The cause is that PaperWM gives every space
   its own `Meta.BackgroundActor` *per monitor* and `tiling.js` passes a
   hardcoded style:
@@ -473,7 +502,7 @@ Conventions to follow if you extend it (human or agent):
   `changed::picture-uri` but not `changed::picture-options`, so even a correct
   value would not repaint until something else forced a refresh.
   `bootstrap/paperwm-picture-options.py` fixes both, `40-extensions.sh`
-  re-applies it every run, and `verify.sh` checks it -- a PaperWM update
+  re-applies it every run, and `verify.sh` checks it — a PaperWM update
   replaces `tiling.js` and takes the patch with it silently.
 
 - **Diagnose a "setting does nothing" by checking whether *every* value does
@@ -485,13 +514,13 @@ Conventions to follow if you extend it (human or agent):
 - **You cannot screenshot-verify the desktop from a CLI on this machine.**
   `org.gnome.Shell.Screenshot` over D-Bus answers `AccessDenied` on GNOME 46
   (it is reserved for the screenshot UI), and `xwd -root` returns the desktop
-  area as pure `0,0,0` -- **ding** (Desktop Icons NG) owns two transparent
+  area as pure `0,0,0` — **ding** (Desktop Icons NG) owns two transparent
   full-screen windows (`xwininfo -root -children` shows `Desktop Icons 1`
   `2560x1600+0+0` and `Desktop Icons 2` `2560x1600+2560+0`) and the capture
   reads those rather than the wallpaper behind them. Do not try to prove a
   background change this way. Check the key with `gsettings get`, check the
   *reader* in source, and confirm the look by eye. Two captures taken under
-  different `picture-options` values came back pixel-identical here -- which
+  different `picture-options` values came back pixel-identical here — which
   was true but proved nothing, because PaperWM was ignoring the key anyway.
 
 - **`ding`'s two per-monitor windows are not why a wallpaper repeats.** They
@@ -507,7 +536,7 @@ Conventions to follow if you extend it (human or agent):
 ALTER_SKIP_GHOSTTY=1 ./install.sh # skip the third-party PPA
 ALTER_SKIP_FASTFETCH=1 ./install.sh  # ditto; banner falls back to plain
 fastfetch --list-modules          # everything the banner could show
-ALTER_WS_COUNT=6 ./install.sh     # more workspaces
+ALTER_WS_COUNT=6 ./install.sh     # more workspaces (1-9; pass the same to verify.sh)
 ALTER_ROFI_KEY='<Super>w' ./install.sh
 ghostty +list-keybinds --default  # ground truth before overriding anything
 ```
@@ -521,13 +550,15 @@ This repo is meant to be pushed to GitHub, so it contains **no**:
 - git identity (`user.name` / `user.email`) — set that yourself, per-machine
   or per-repo. `gitconfig.include` carries only tool config.
 - `~/.bashrc` work section — SDK paths, internal project names, build aliases.
-  Those stay machine-local. Only the generic tooling hook is appended.
+  Those stay in gitignored `local/env.sh`; the generic tooling hook sources it
+  automatically when readable.
 - `dconf` dumps — they include recent-file lists, app state, and account data.
   `20-gnome.sh` sets an explicit, reviewable list of keys instead.
 - credentials, hostnames, or tokens of any kind.
 
-If you add machine-specific config later, keep it in a gitignored
-`local/` directory and source it conditionally.
+Keep machine-specific config in `local/`, which is gitignored except for its
+README. `config/shell/devtools.sh` sources `local/env.sh` when readable, from
+`${ALTER_ROOT:-$HOME/alter}/local/env.sh`.
 
 ---
 

@@ -21,13 +21,13 @@ _alter_logo_file() {
   return 1
 }
 
-# Dependency-free fallback, used when fastfetch is not installed (non-Debian
-# machine, or ALTER_SKIP_FASTFETCH=1). Same idea, coreutils only, no colours
+# Fallback without fastfetch, used when it is not installed (non-Debian
+# machine, or ALTER_SKIP_FASTFETCH=1). Same idea, standard shell tools, no colours
 # beyond plain ANSI. Prints the logo above the facts rather than beside them:
 # aligning two columns needs the art's display width, which escape sequences
 # and double-width glyphs make unknowable in pure shell.
 _alter_fetch_plain() {
-  local f v key=$'\033[35m' dim=$'\033[2m' off=$'\033[0m'
+  local f v host="${HOSTNAME:-?}" key=$'\033[35m' dim=$'\033[2m' off=$'\033[0m'
   [ -t 1 ] || { key=; dim=; off=; }
 
   # $1..$9 are fastfetch colour placeholders. Strip them and this art is a
@@ -46,7 +46,7 @@ _alter_fetch_plain() {
   echo
 
   _row() { printf '  %s%-5s%s %s\n' "$key" "$1" "$off" "$2"; }
-  printf '\n  %s%s@%s%s\n' "$key" "${USER:-$(id -un)}" "${HOSTNAME%%.*}" "$off"
+  printf '\n  %s%s@%s%s\n' "$key" "${USER:-$(id -un)}" "${host%%.*}" "$off"
   v=$( . /etc/os-release 2>/dev/null && printf '%s' "${PRETTY_NAME:-unknown}" )
   _row os   "$v $(uname -m)"
   _row ker  "$(uname -sr)"
